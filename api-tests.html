@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Textalive API test</title>
+</head>
+
+<body>
+    <h1>Textalive API test</h1>
+    <div id="text"></div>
+    <button id="start">Start</button>
+    <button id="save">Save</button>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/textalive-app-api/dist/index.js"></script>
+    <script type="module">
+        const { Player } = TextAliveApp;
+        // import { Player } from "textalive-app-api";
+
+        const texts = {};
+
+        let start = 0;
+
+        const processed = new Set();
+
+        const animateWord = function (now, unit) {
+            processed.add(unit.text);
+            if (unit.contains(now)) {
+                if (!texts[unit.text]) {
+                    document.getElementById("text").textContent = unit.text;
+                    texts[now] = unit.text;
+                }
+            }
+        };
+
+        const player = new Player({ app: { token: "Pubb8rgCeP661iWP" } });
+        let c = null;
+        let done = [false];
+        player.addListener({
+            onVideoReady: (v) => {
+            },
+            onAppReady: (app) => {
+                if (!app.songUrl) {
+                    // player.createFromSongUrl("https://www.nicovideo.jp/watch/sm36903498");
+                    player.createFromSongUrl("https://www.youtube.com/watch?v=KRVFPPYcJUc"); // PinnocchioP - Nobody Makes Sense
+                    // player.createFromSongUrl("https://www.youtube.com/watch?v=HNIypYrVlkA"); // KIRA - Monster ft Gumi
+                }
+                if (!app.managed) {
+                    console.log(app, player);
+                    console.log(done);
+
+                }
+            },
+            onTimeUpdate(position) {
+                if (done[0]) {
+                    return;
+                }
+                let current = c || player.video.firstWord;
+                console.log(current, position);
+
+                while (current && current.startTime <= position) {
+                    texts[current.startTime] = current.text;
+
+                    current = current.next;
+                }
+                done[0] = true;
+            }
+        });
+        document.querySelector("#save").addEventListener("click", () => {
+            console.log(JSON.stringify(texts));
+
+        });
+
+        document.querySelector("#start").addEventListener("click", async () => {
+            await player.setMediaPosition(player.data.song.length * 1000 - 2000);
+            player.requestPlay();
+        });
+    </script>
+
+</body>
+
+</html>
