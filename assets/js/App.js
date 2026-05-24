@@ -1,26 +1,24 @@
+import Stats from "https://cdn.jsdelivr.net/npm/stats.js@0.17.0/+esm";
 import * as THREE from "three";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import {
-  degToRad,
-  randInt,
-  getGridMaxElements,
-  gridToCoord,
-  easeInOut,
-} from "./utils/Math.js";
+import { degToRad, randInt } from "./utils/Math.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { MAGIC_NUMBERS } from "./MagicNumbers.js";
 import { PathGen, Point } from "./PathGen.js";
 import { ParticleSystem } from "./ParticleSystem.js";
 import { LYRICS_TEMP } from "./LyricsTemp.js";
+import { BuildManager } from "./BuildManager.js";
+import { Build } from "./Build.js";
 
 export class LyricsApp {
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
-  constructor() {
+  constructor(debug = false) {
     // Data
+    this.debug = debug;
     this.modelsLoaded = {};
     this.usedGrids = [];
     this.shootingStars = [];
@@ -32,6 +30,7 @@ export class LyricsApp {
     this.zOffset = 0;
 
     // Classes
+    this.buildManager = new BuildManager();
     this.cameraRotationEaseInOut = {
       start: 0,
       change: 0,
@@ -51,6 +50,12 @@ export class LyricsApp {
     this.renderer = null;
     this.floor = null;
     this.cameraLight = null;
+
+    if (this.debug) {
+      this.stats = new Stats();
+      this.stats.showPanel(0);
+      document.body.appendChild(this.stats.dom);
+    }
   }
   init() {
     this.loaders = {
@@ -91,7 +96,7 @@ export class LyricsApp {
 
     // Load models and generate elements
     this.generateElements();
-    this.loadedCallback();
+    Build.loadModels(() => this.loadedCallback(), this.loaders);
   }
 
   enableDebug() {
@@ -100,6 +105,7 @@ export class LyricsApp {
 
   getPoints() {
     const choosenBuilds = [];
+    let lastX = 0;
     for (let i = 0; i < LYRICS_TEMP.length; i++) {
       const lyrics = LYRICS_TEMP[i];
 
@@ -131,8 +137,11 @@ export class LyricsApp {
 
       const z =
         i * MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS * MAGIC_NUMBERS.GRID_SIZE.Z;
+      const minX = Math.max(0, lastX - 1);
+      const maxX = Math.min(MAGIC_NUMBERS.POINTS_GEN.MAX_X, lastX + 1);
+      const x = randInt(minX, maxX);
       const pos = new THREE.Vector3(
-        randInt(0, MAGIC_NUMBERS.POINTS_GEN.MAX_X) * MAGIC_NUMBERS.GRID_SIZE.X,
+        x * MAGIC_NUMBERS.GRID_SIZE.X,
         MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
         z,
       );
@@ -141,89 +150,109 @@ export class LyricsApp {
         time: lyricTime,
         texts: lyricsText,
       });
+      for (let j = 0; j <= MAGIC_NUMBERS.POINTS_GEN.MAX_X; j++) {
+        if (j !== x && i >= MAGIC_NUMBERS.BUILD_START) {
+          this.buildManager.placeVirtualBuilds(
+            j * MAGIC_NUMBERS.GRID_SIZE.X,
+            z,
+          );
+        }
+      }
     }
     const buildPositions = [];
+    // let lastBuild = null;
     for (const build of choosenBuilds) {
+      // if (lastBuild) {
+      //   buildPositions.push({
+      //     x: (lastBuild.pos.x + build.pos.x) / 2,
+      //     y: (lastBuild.pos.y + build.pos.y) / 2,
+      //     z: (lastBuild.pos.z + build.pos.z) / 2,
+      //     isMiddlePoint: true,
+      //   });
+      // }
+      // lastBuild = build;
       buildPositions.push({
         x: build.pos.x,
         y:
-          MAGIC_NUMBERS.PATH_Y.FLOOR_Y +
-          randInt(MAGIC_NUMBERS.PATH_Y.MIN_Y, MAGIC_NUMBERS.PATH_Y.MAX_Y),
+          Math.random() *
+            (MAGIC_NUMBERS.PATH_Y.MAX_Y - MAGIC_NUMBERS.PATH_Y.MIN_Y + 1) +
+          MAGIC_NUMBERS.PATH_Y.MIN_Y,
         z: build.pos.z + MAGIC_NUMBERS.BUILD_PATH_OFFSET.Z,
         time: build.time,
         texts: build.texts,
         randomXOffset:
           build.pos.x > MAGIC_NUMBERS.POINTS_GEN.MAX_X / 2 ? 1 : -1,
+        isMiddlePoint: false,
       });
     }
 
     return buildPositions;
   }
 
-  buildGrid(sizeZ) {
-    let preview = "";
-    this.pathGrid = new PF.Grid(this.AREA_SIZE.x + 1, sizeZ + 1);
+  // buildGrid(sizeZ) {
+  //   let preview = "";
+  //   this.pathGrid = new PF.Grid(this.AREA_SIZE.x + 1, sizeZ + 1);
 
-    for (let i = this.zOffset; i < sizeZ; i++) {
-      for (let j = 0; j < this.AREA_SIZE.x; j++) {
-        const point = new Point(j, 0, i);
+  //   for (let i = this.zOffset; i < sizeZ; i++) {
+  //     for (let j = 0; j < this.AREA_SIZE.x; j++) {
+  //       const point = new Point(j, 0, i);
 
-        // const closestBuild = this.buildManager.getClosestBuild(point);
-        // if (!closestBuild) {
-        //   this.pathGrid.setWalkableAt(j, i, true);
-        //   preview += "0";
-        //   continue;
-        // }
+  //       // const closestBuild = this.buildManager.getClosestBuild(point);
+  //       // if (!closestBuild) {
+  //       //   this.pathGrid.setWalkableAt(j, i, true);
+  //       //   preview += "0";
+  //       //   continue;
+  //       // }
 
-        const closestBuildPoint = new Point(
-          Math.floor(point.x / MAGIC_NUMBERS.GRID_SIZE.X) *
-            MAGIC_NUMBERS.GRID_SIZE.X,
-          MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
-          Math.floor(point.z / MAGIC_NUMBERS.GRID_SIZE.Z) *
-            MAGIC_NUMBERS.GRID_SIZE.Z,
-        );
-        const distanceX = Math.abs(closestBuildPoint.x - point.x);
-        const distanceZ = Math.abs(closestBuildPoint.z - point.z);
+  //       const closestBuildPoint = new Point(
+  //         Math.floor(point.x / MAGIC_NUMBERS.GRID_SIZE.X) *
+  //           MAGIC_NUMBERS.GRID_SIZE.X,
+  //         MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
+  //         Math.floor(point.z / MAGIC_NUMBERS.GRID_SIZE.Z) *
+  //           MAGIC_NUMBERS.GRID_SIZE.Z,
+  //       );
+  //       const distanceX = Math.abs(closestBuildPoint.x - point.x);
+  //       const distanceZ = Math.abs(closestBuildPoint.z - point.z);
 
-        if (
-          distanceX <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.X &&
-          distanceZ <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.Y
-        ) {
-          this.pathGrid.setWalkableAt(j, i, false);
-          preview += "1";
-        } else {
-          this.pathGrid.setWalkableAt(j, i, true);
-          preview += "0";
-        }
-      }
-      preview += "\n";
-    }
+  //       if (
+  //         distanceX <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.X &&
+  //         distanceZ <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.Y
+  //       ) {
+  //         this.pathGrid.setWalkableAt(j, i, false);
+  //         preview += "1";
+  //       } else {
+  //         this.pathGrid.setWalkableAt(j, i, true);
+  //         preview += "0";
+  //       }
+  //     }
+  //     preview += "\n";
+  //   }
 
-    console.log(preview);
+  //   console.log(preview);
 
-    this.previewGrid = preview;
+  //   this.previewGrid = preview;
 
-    // window.drawPreview = (x, y, x2, y2) => {
-    //   const lines = this.previewGrid.split("\n");
-    //   let preview = "";
-    //   for (let i = 0; i < lines.length; i++) {
-    //     let line = "";
-    //     for (let j = 0; j < lines[i].length; j++) {
-    //       if (j === x && i === y) {
-    //         line += " ";
-    //       } else {
-    //         line += lines[i][j];
-    //       }
-    //     }
-    //     preview += line + "\n";
-    //   }
-    //   console.log(preview);
-    // };
+  //   // window.drawPreview = (x, y, x2, y2) => {
+  //   //   const lines = this.previewGrid.split("\n");
+  //   //   let preview = "";
+  //   //   for (let i = 0; i < lines.length; i++) {
+  //   //     let line = "";
+  //   //     for (let j = 0; j < lines[i].length; j++) {
+  //   //       if (j === x && i === y) {
+  //   //         line += " ";
+  //   //       } else {
+  //   //         line += lines[i][j];
+  //   //       }
+  //   //     }
+  //   //     preview += line + "\n";
+  //   //   }
+  //   //   console.log(preview);
+  //   // };
 
-    this.pathFinder = new PF.AStarFinder({
-      allowsDiagonal: true,
-    });
-  }
+  //   this.pathFinder = new PF.AStarFinder({
+  //     allowsDiagonal: true,
+  //   });
+  // }
 
   async loadedCallback() {
     const neededPoints = PathGen.getNumberOfPointsNeeded();
@@ -233,7 +262,7 @@ export class LyricsApp {
 
     this.floor.geometry.scale(1, 1, neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
 
-    this.buildGrid(neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
+    // this.buildGrid(neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
 
     this.pathGen = new PathGen(
       buildPositions,
@@ -255,8 +284,27 @@ export class LyricsApp {
         8,
         8,
       ),
+      MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES,
     );
     this.renderer.setAnimationLoop((time) => this.loop(time));
+  }
+
+  raycastForward(point, distance) {
+    const raycaster = new THREE.Raycaster(
+      new THREE.Vector3(point.x, point.y, point.z),
+      new THREE.Vector3(0, 0, 1),
+      0,
+      distance,
+    );
+    // const objects = this.buildManager.builds
+    //   .filter((build) => build.mesh)
+    //   .map((build) => build.mesh);
+    const name = "Build";
+    const objects = this.scene.children
+      .filter((child) => name === child.name && child.children[0])
+      .map((group) => group.children[0]); // Folder with the model -> model itself
+    const intersects = raycaster.intersectObjects(objects, true);
+    return intersects.map((intersect) => intersect.object);
   }
 
   getClosest(point, objects) {
@@ -291,6 +339,12 @@ export class LyricsApp {
     return canvas.toDataURL();
   }
 
+  refill(nextRefillZ) {
+    this.buildManager.showVirtualBuilds(this.scene, nextRefillZ);
+    const lastRefillZ = nextRefillZ - MAGIC_NUMBERS.REFILL_INTERVAL;
+    this.buildManager.removeBuildsBeforeZ(this.scene, lastRefillZ);
+  }
+
   // refill() {
   //   this.zBuilds += MAGIC_NUMBERS.BUILD_BATCH_NUMBER;
   //   // console.log(this.zBuilds);
@@ -305,8 +359,22 @@ export class LyricsApp {
   //   // this.pathGen.updatePath(buildPositions, this.pathFinder, this.pathGrid);
   // }
 
-  async showLyrics(lyrics, point, targetY) {
+  // , point, targetY
+  async showLyrics(lyrics) {
     // Text geometry
+
+    const point = new THREE.Vector3(0, 0, -1).unproject(this.camera);
+
+    const cameraDirection = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraDirection);
+
+    point.add(
+      cameraDirection.clone().multiplyScalar(MAGIC_NUMBERS.LYRICS.DISTANCE),
+    );
+
+    // const cameraPosition = this.camera.position;
+
+    // point.multiplyScalar(MAGIC_NUMBERS.LYRICS.DISTANCE).add(cameraPosition);
 
     const lyricImage = this.generateImageFrontCharacter(lyrics);
 
@@ -317,6 +385,14 @@ export class LyricsApp {
       emissiveIntensity: MAGIC_NUMBERS.LYRICS_EMISSIVE_INTENSITY,
     });
 
+    // const bgMaterial = new THREE.MeshStandardMaterial({
+    //   color: MAGIC_NUMBERS.LYRICS_FRAME.COLOR,
+    //   side: THREE.DoubleSide,
+    //   emissive: MAGIC_NUMBERS.LYRICS_FRAME.COLOR,
+    //   emissiveIntensity: MAGIC_NUMBERS.LYRICS_FRAME.EMISSIVE_INTENSITY,
+    // });
+    // bgMaterial.transparent = true;
+
     const textTexture = await new Promise((resolve) => {
       this.loaders.texture.load(lyricImage, (texture) => {
         resolve(texture);
@@ -326,41 +402,71 @@ export class LyricsApp {
     textMaterial.map = textTexture;
     textMaterial.transparent = true;
 
-    const textGeometry = new THREE.PlaneGeometry(
+    const scale = [
       MAGIC_NUMBERS.LYRICS_SIZE * lyrics.length,
-      MAGIC_NUMBERS.LYRICS_SIZE, // / lyrics.length,
-    );
+      MAGIC_NUMBERS.LYRICS_SIZE,
+    ];
+
+    const textGeometry = new THREE.PlaneGeometry(...scale);
+    // const textGeometryBg = new THREE.PlaneGeometry(...scale);
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+    // const textMeshBg = new THREE.Mesh(textGeometryBg, bgMaterial);
+    textMesh.quaternion.copy(this.camera.quaternion);
+    textMesh.rotateY(Math.PI);
+    // textMeshBg.position.sub(
+    //   cameraDirection
+    //     .clone()
+    //     .multiplyScalar(MAGIC_NUMBERS.LYRICS_FRAME.FRAME_OFFSET),
+    // );
+    // textMesh.add(textMeshBg);
 
     // let testCube = new THREE.Mesh(
     //   new THREE.BoxGeometry(1, 1, 1),
     //   new THREE.MeshBasicMaterial({ color: 0xff0000 }),
     // );
-    console.log(lyrics);
-    if (this.texts[point.z]) {
-      textMesh.position.copy(
-        new THREE.Vector3(
-          point.x,
-          targetY + MAGIC_NUMBERS.LYRICS_SPACING.Y * this.texts[point.z],
-          point.z,
-        ),
-      );
-      this.texts[point.z]++;
-    } else {
-      textMesh.position.copy(new THREE.Vector3(point.x, targetY, point.z));
-      this.texts[point.z] = 1;
-    }
+    // console.log(lyrics);
+
+    textMesh.position.copy(new THREE.Vector3(point.x, point.y, point.z));
 
     textMesh.scale.setX(-1);
 
     // testCube.position.copy(textMesh.position);
     // this.scene.add(testCube);
 
+    // Little animation for the lyrics :)
+    // const material = new THREE.MeshStandardMaterial({
+    //   color: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COLOR,
+    //   emissive: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COLOR,
+    //   emissiveIntensity: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.LIGHT_INTENSITY,
+    // });
+    // const particleSystem = new ParticleSystem(
+    //   this.scene,
+    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COUNT,
+    //   material,
+    //   new THREE.SphereGeometry(MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.SIZE, 8, 8),
+    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM,
+    // );
+    // particleSystem.ensureCapacity(
+    //   textMesh.position,
+    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.DURATION, // Spawn all particles at once, then loop (by doing this, it's more optimized)
+    // );
+
+    const textElement = {
+      textMesh,
+      // direction: cameraDirection,
+      gravity: Math.random() * MAGIC_NUMBERS.LYRICS.GRAVITY,
+      i: 0,
+    };
+
+    // console.log(textMesh);
+
     this.scene.add(textMesh);
 
     setTimeout(() => {
       this.scene.remove(textMesh);
-    }, MAGIC_NUMBERS.LYRICS_DISPLAY_TIME * 5000);
+      // particleSystem.ensureRemove();
+    }, MAGIC_NUMBERS.LYRICS_DISPLAY_TIME * 1000);
+    return textElement;
   }
 
   generateElements() {
@@ -383,11 +489,11 @@ export class LyricsApp {
     // Camera spotlight
     this.cameraLight = new THREE.SpotLight(
       0xffffff,
-      MAGIC_NUMBERS.LIGHT_INTENSITY,
+      MAGIC_NUMBERS.CAMERA_LIGHT.INTENSITY,
       100,
-      degToRad(45),
+      degToRad(MAGIC_NUMBERS.CAMERA_LIGHT.ANGLE),
       0.5,
-      2,
+      MAGIC_NUMBERS.CAMERA_LIGHT.DECAY,
     );
     this.cameraLight.castShadow = true;
     this.cameraLight.shadow.mapSize.width = 1024;
@@ -446,6 +552,7 @@ export class LyricsApp {
   }
 
   async loop(time) {
+    this.stats.begin();
     // IMPORTANT: The first frame delta is from the time the page started loading, so we need to ignore it to avoid huge jumps in the path
     let newTime = time - this.lastTime;
     this.lastTime = time;
@@ -492,7 +599,10 @@ export class LyricsApp {
 
     this.particleSystem.loop(newTime / 1000);
 
+    // textElement.textMeshBg.position.add(newDirection);
+
     // Render
     this.composer.render();
+    this.stats.end();
   }
 }

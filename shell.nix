@@ -10,5 +10,6 @@ pkgs.mkShellNoCC {
   packages = with pkgs; [
     php
     ngrok
+    cloc # So I can get the comments/code ratio
   ];
 }
