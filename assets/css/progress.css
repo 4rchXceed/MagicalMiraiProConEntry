@@ -1,0 +1,73 @@
+#progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background-color: #86cecb;
+    transition: width calc(50s / 1000) linear;
+}
+
+#progress-bar {
+    width: 100%;
+    height: 50px;
+    position: relative;
+}
+
+#ball {
+    width: 25px;
+    height: 25px;
+    background-color: black;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 20%;
+    transform: translate(0, -50%);
+    pointer-events: none;
+    z-index: 12;
+}
+
+#ball.bumb {
+    animation: bumt 0.1s linear;
+}
+
+.lyric {
+    position: absolute;
+    top: 50%;
+    left: 20%;
+    transform: translate(0, -50%);
+    font-size: 139%;
+    pointer-events: none;
+    background-color: rgba(255, 255, 255, 1);
+    text-wrap: nowrap;
+    padding: 5px 10px;
+}
+
+#cursor {
+    width: 2px;
+    height: 100%;
+    background-color: black;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+#progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    background-color: white;
+    overflow: hidden;
+}
+
+@keyframes bumt {
+    0% {
+        transform: translate(0, -50%);
+    }
+    50% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(0, -50%);
+    }
+}

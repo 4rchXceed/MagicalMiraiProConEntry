@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+    <head>
+        <title></title>
+        <link rel="stylesheet" href="./assets/css/progress.css" />
+    </head>
+    <body>
+        <div id="progress-bar">
+            <div id="progress-bar-fill"></div>
+            <div id="ball"></div>
+            <div id="lyrics-pool"></div>
+            <div id="cursor"></div>
+        </div>
+        <script type="module">
+            import { ProgressBar } from "./assets/js/Progress.js";
+            let i = 0;
+            const progressBar = new ProgressBar(
+                document.getElementById("progress-bar"),
+                {
+                    speed: 20,
+                },
+                (progress) => {
+                    i = Math.round(progress * 100);
+                },
+            );
+            setInterval(() => {
+                progressBar.setProgress(i);
+                i += 1;
+                if (i % 20 === 0) {
+                    progressBar.spawnLyric("か");
+                }
+                if (i > 100) i = 0;
+            }, 50);
+        </script>
+    </body>
+</html>

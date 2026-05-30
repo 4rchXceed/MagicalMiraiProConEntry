@@ -36,9 +36,9 @@ export class ParticleSystem {
     if (this.count >= this.total) return;
     const particle = new THREE.Mesh(this.mesh, this.material);
     const randomPositionOffset = new THREE.Vector3(
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE,
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE,
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE,
+      (Math.random() - 0.5) * this.config.OFFSET_SIZE.X,
+      (Math.random() - 0.5) * this.config.OFFSET_SIZE.Y,
+      (Math.random() - 0.5) * this.config.OFFSET_SIZE.Z,
     );
     position.add(randomPositionOffset);
     particle.position.copy(position);

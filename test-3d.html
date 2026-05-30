@@ -1,27 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Test - 3D TODO:RENAME</title>
+        <style>
+            body {
+                margin: 0;
+            }
+        </style>
+        <link rel="stylesheet" href="./assets/css/progress.css" />
+    </head>
 
-<head>
-    <meta charset="utf-8">
-    <title>Test - 3D TODO:RENAME</title>
-    <style>
-        body {
-            margin: 0;
-        }
-    </style>
-</head>
-
-<body>
-    <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
-  }
-}
-</script>
-    <script src="https://cdn.jsdelivr.net/npm/pathfinding@0.4.18/visual/lib/pathfinding-browser.min.js"></script>
-    <script type="module" src="./assets/js/Main.js"></script>
-</body>
-
+    <body>
+        <div id="progress-container">
+            <div id="progress-bar">
+                <div id="progress-bar-fill"></div>
+                <div id="ball"></div>
+                <div id="lyrics-pool"></div>
+                <div id="cursor"></div>
+            </div>
+        </div>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
+                }
+            }
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/pathfinding@0.4.18/visual/lib/pathfinding-browser.min.js"></script>
+        <script type="module" src="./assets/js/Main.js"></script>
+    </body>
 </html>

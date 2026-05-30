@@ -13,6 +13,7 @@ import { ParticleSystem } from "./ParticleSystem.js";
 import { LYRICS_TEMP } from "./LyricsTemp.js";
 import { BuildManager } from "./BuildManager.js";
 import { Build } from "./Build.js";
+import { ProgressBar } from "./Progress.js";
 
 export class LyricsApp {
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
@@ -36,7 +37,7 @@ export class LyricsApp {
       change: 0,
       duration: MAGIC_NUMBERS.ROTATION_TIME,
     };
-    this.particleSystem = null;
+    this.particleSystems = [];
 
     // Not yet initialized attributes
     this.loaders = null;
@@ -56,6 +57,16 @@ export class LyricsApp {
       this.stats.showPanel(0);
       document.body.appendChild(this.stats.dom);
     }
+
+    this.songLength = window.audio.duration;
+
+    this.isIntro = true;
+
+    this.stars = null;
+    this.lastCamPos = null;
+    this.progress = null;
+
+    this.changeNeeded = null;
   }
   init() {
     this.loaders = {
@@ -106,52 +117,36 @@ export class LyricsApp {
   getPoints() {
     const choosenBuilds = [];
     let lastX = 0;
-    for (let i = 0; i < LYRICS_TEMP.length; i++) {
-      const lyrics = LYRICS_TEMP[i];
 
-      let lyricsText = [
-        {
-          time: LYRICS_TEMP[i][0] / 1000 - lyrics[0] / 1000,
-          text: LYRICS_TEMP[i][1],
-        },
-      ];
-
-      let timeToNext = LYRICS_TEMP[i + 1]
-        ? LYRICS_TEMP[i + 1][0] / 1000 - lyrics[0] / 1000
-        : Infinity;
-
-      let lyricTime = lyrics[0] / 1000;
-
-      while (timeToNext < MAGIC_NUMBERS.LYRICS_MIN_TIME) {
-        // "Skip" to the next lyrics if we're too close to it, to avoid rapid changes in the path
-        i++;
-        if (i >= LYRICS_TEMP.length - 1) break;
-
-        timeToNext = LYRICS_TEMP[i + 1][0] / 1000 - lyrics[0] / 1000;
-        lyricTime = LYRICS_TEMP[i][0] / 1000;
-        lyricsText.push({
-          time: LYRICS_TEMP[i][0] / 1000 - lyrics[0] / 1000,
-          text: LYRICS_TEMP[i][1],
-        });
-      }
-
+    for (
+      let i = 0;
+      i <
+      Math.ceil(
+        (this.songLength * MAGIC_NUMBERS.POINTS_PER_SECOND) /
+          MAGIC_NUMBERS.NUMBER_STEPS_PER_POINTS,
+      );
+      i++
+    ) {
       const z =
         i * MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS * MAGIC_NUMBERS.GRID_SIZE.Z;
       const minX = Math.max(0, lastX - 1);
       const maxX = Math.min(MAGIC_NUMBERS.POINTS_GEN.MAX_X, lastX + 1);
       const x = randInt(minX, maxX);
-      const pos = new THREE.Vector3(
+      let pos;
+      pos = new THREE.Vector3(
         x * MAGIC_NUMBERS.GRID_SIZE.X,
         MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
         z,
       );
       choosenBuilds.push({
         pos: pos,
-        time: lyricTime,
-        texts: lyricsText,
       });
-      for (let j = 0; j <= MAGIC_NUMBERS.POINTS_GEN.MAX_X; j++) {
-        if (j !== x && i >= MAGIC_NUMBERS.BUILD_START) {
+      for (
+        let j = MAGIC_NUMBERS.POINTS_GEN.BUILDS.MIN_X;
+        j <= MAGIC_NUMBERS.POINTS_GEN.BUILDS.MAX_X;
+        j++
+      ) {
+        if (j !== x) {
           this.buildManager.placeVirtualBuilds(
             j * MAGIC_NUMBERS.GRID_SIZE.X,
             z,
@@ -159,7 +154,22 @@ export class LyricsApp {
         }
       }
     }
-    const buildPositions = [];
+    const buildPositions = [
+      // First point is ignored, so we just put dummy values
+      {
+        x: 0,
+        y: 0,
+        z: 0,
+      },
+    ];
+    // Place the custom-defiened intro points
+    for (const customPoint of MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH) {
+      buildPositions.push({
+        x: customPoint.X,
+        y: customPoint.Y,
+        z: customPoint.Z,
+      });
+    }
     // let lastBuild = null;
     for (const build of choosenBuilds) {
       // if (lastBuild) {
@@ -178,10 +188,6 @@ export class LyricsApp {
             (MAGIC_NUMBERS.PATH_Y.MAX_Y - MAGIC_NUMBERS.PATH_Y.MIN_Y + 1) +
           MAGIC_NUMBERS.PATH_Y.MIN_Y,
         z: build.pos.z + MAGIC_NUMBERS.BUILD_PATH_OFFSET.Z,
-        time: build.time,
-        texts: build.texts,
-        randomXOffset:
-          build.pos.x > MAGIC_NUMBERS.POINTS_GEN.MAX_X / 2 ? 1 : -1,
         isMiddlePoint: false,
       });
     }
@@ -254,6 +260,41 @@ export class LyricsApp {
   //   });
   // }
 
+  playIntro() {
+    const material = new THREE.MeshStandardMaterial({
+      color: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.COLOR,
+      emissive: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.COLOR,
+      emissiveIntensity: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.LIGHT_INTENSITY,
+    });
+    const particleSystem = new ParticleSystem(
+      this.scene,
+      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.NUMBER,
+      material,
+      new THREE.SphereGeometry(MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.SIZE, 8, 8),
+      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM,
+    );
+    const pos = this.camera.position
+      .clone()
+      .sub(
+        new THREE.Vector3(
+          MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_SIZE.X / 2,
+          -MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_SIZE.Y / 2,
+          MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_Z,
+        ),
+      );
+    particleSystem.ensureCapacity(
+      pos,
+      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.DURATION,
+    );
+    this.particleSystems.push(particleSystem);
+    setTimeout(() => {
+      this.particleSystems.splice(
+        this.particleSystems.indexOf(particleSystem),
+        1,
+      );
+    }, MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.DURATION * 1000);
+  }
+
   async loadedCallback() {
     const neededPoints = PathGen.getNumberOfPointsNeeded();
     console.log("Needed Points for the song:", neededPoints);
@@ -275,7 +316,7 @@ export class LyricsApp {
       emissive: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
       emissiveIntensity: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
     });
-    this.particleSystem = new ParticleSystem(
+    const particleSystem = new ParticleSystem(
       this.scene,
       MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES.NUMBER,
       material,
@@ -286,6 +327,7 @@ export class LyricsApp {
       ),
       MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES,
     );
+    this.particleSystems.push(particleSystem);
     this.renderer.setAnimationLoop((time) => this.loop(time));
   }
 
@@ -361,6 +403,9 @@ export class LyricsApp {
 
   // , point, targetY
   async showLyrics(lyrics) {
+    if (this.progress) {
+      this.progress.spawnLyric(lyrics);
+    }
     // Text geometry
 
     const point = new THREE.Vector3(0, 0, -1).unproject(this.camera);
@@ -402,6 +447,10 @@ export class LyricsApp {
     textMaterial.map = textTexture;
     textMaterial.transparent = true;
 
+    // Make it always visible (so it doesn't get hidden by other objects)
+    textMaterial.depthTest = false;
+    textMaterial.depthWrite = false;
+
     const scale = [
       MAGIC_NUMBERS.LYRICS_SIZE * lyrics.length,
       MAGIC_NUMBERS.LYRICS_SIZE,
@@ -410,6 +459,7 @@ export class LyricsApp {
     const textGeometry = new THREE.PlaneGeometry(...scale);
     // const textGeometryBg = new THREE.PlaneGeometry(...scale);
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
     // const textMeshBg = new THREE.Mesh(textGeometryBg, bgMaterial);
     textMesh.quaternion.copy(this.camera.quaternion);
     textMesh.rotateY(Math.PI);
@@ -456,16 +506,14 @@ export class LyricsApp {
       // direction: cameraDirection,
       gravity: Math.random() * MAGIC_NUMBERS.LYRICS.GRAVITY,
       i: 0,
+      scaleY: 0,
     };
+
+    textMesh.scale.y = 0;
 
     // console.log(textMesh);
 
     this.scene.add(textMesh);
-
-    setTimeout(() => {
-      this.scene.remove(textMesh);
-      // particleSystem.ensureRemove();
-    }, MAGIC_NUMBERS.LYRICS_DISPLAY_TIME * 1000);
     return textElement;
   }
 
@@ -551,23 +599,117 @@ export class LyricsApp {
     this.shootingStars.push(shootingStar);
   }
 
+  generatePos() {
+    return (Math.random() - 0.5) * MAGIC_NUMBERS.INTRO.XY_BOUNDS;
+  }
+
+  generateWarp() {
+    const stars = [];
+    const warpMaterial = new THREE.MeshStandardMaterial({
+      color: MAGIC_NUMBERS.INTRO.WARP.COLOR,
+      transparent: true,
+      opacity: MAGIC_NUMBERS.INTRO.WARP.OPACITY,
+      emissive: MAGIC_NUMBERS.INTRO.WARP.COLOR,
+      emissiveIntensity: MAGIC_NUMBERS.INTRO.WARP.EMISSIVE_INTENSITY,
+    });
+    for (let i = 0; i < MAGIC_NUMBERS.INTRO.WARP.NUMBER; i++) {
+      const star = new THREE.CylinderGeometry(
+        MAGIC_NUMBERS.INTRO.WARP.SIZE,
+        MAGIC_NUMBERS.INTRO.WARP.SIZE,
+        MAGIC_NUMBERS.INTRO.WARP.SIZE,
+        20,
+      );
+      const warpStar = new THREE.Mesh(star, warpMaterial);
+      warpStar.userData.z = randInt(0, MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE);
+      warpStar.userData.y =
+        Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
+        MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
+      warpStar.userData.x =
+        Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
+        MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
+      warpStar.scale.z = MAGIC_NUMBERS.INTRO.WARP.SCALE;
+      if (
+        Math.abs(warpStar.userData.y) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN ||
+        Math.abs(warpStar.userData.x) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN
+      ) {
+        this.scene.add(warpStar);
+        stars.push(warpStar);
+      }
+    }
+    this.stars = stars;
+  }
+
+  moveStars(dt) {
+    if (!this.stars) return;
+    for (let i = 0; i < this.stars.length; i++) {
+      const warpStar = this.stars[i];
+      const pos = this.camera.position
+        .clone()
+        .add(
+          new THREE.Vector3(
+            warpStar.userData.x,
+            warpStar.userData.y,
+            warpStar.userData.z,
+          ),
+        );
+      if (pos.z < MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+        warpStar.position.set(pos.x, pos.y, pos.z);
+        warpStar.userData.z += -MAGIC_NUMBERS.INTRO.WARP.OFFSET_ADD * dt;
+        if (pos.z < this.camera.position.z) {
+          warpStar.userData.z = randInt(
+            0,
+            MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE,
+          );
+        }
+      } else {
+        this.scene.remove(warpStar);
+      }
+    }
+  }
+  // for (let i = 0; i < MAGIC_NUMBERS.INTRO.WARP.NUMBER; i++) {
+  //   const warpStarGeometry = new THREE.CylinderGeometry(
+  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
+  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
+  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
+  //     20,
+  //   );
+
+  //   const warpStar = new THREE.Mesh(warpStarGeometry, warpMaterial);
+  //   const pos = this.camera.position.clone().add(new THREE.Vector3(0, 0, 0));
+  //   warpStar.position.set(pos.x, pos.y, pos.z);
+  //   warpStar.userData.init = true;
+  //   warpStar.userData.distance =
+  //     Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX +
+  //     MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN;
+  //   this.scene.add(warpStar);
+  //   this.warpStars.push(warpStar);
+  // }
+
   async loop(time) {
     this.stats.begin();
     // IMPORTANT: The first frame delta is from the time the page started loading, so we need to ignore it to avoid huge jumps in the path
+    // Metric in milliseconds
     let newTime = time - this.lastTime;
+    // Trick to modify the playback time
+    if (this.changeNeeded) {
+      newTime += this.changeNeeded;
+    }
     this.lastTime = time;
     if (this.isFirstFrame) {
-      window.audio.play(); // TODO: Finish this in a better way
-      for (const lyricAndTime of LYRICS_TEMP) {
-        setTimeout(() => {
-          console.log("FIX:", lyricAndTime[1]);
-        }, lyricAndTime[0]);
-      }
+      // for (const lyricAndTime of LYRICS_TEMP) {
+      //   setTimeout(() => {
+      //     console.log("FIX:", lyricAndTime[1]);
+      //   }, lyricAndTime[0]);
+      // }
       this.isFirstFrame = false;
+      this.generateWarp();
       return;
     }
 
-    const [newPos, objective, rail] = this.pathGen.update(newTime / 1000);
+    const [newPos, objective, rail] = this.pathGen.update(
+      newTime / 1000,
+      this.changeNeeded !== null,
+    );
     this.camera.position.set(newPos.x, newPos.y, newPos.z);
 
     if (objective) {
@@ -592,17 +734,54 @@ export class LyricsApp {
       .add(cameraDirection);
     this.cameraLight.target.updateMatrixWorld();
 
-    this.particleSystem.ensureCapacity(
-      this.shootingStars[0].position.clone(),
-      newTime / 1000,
-    );
+    for (const particleSystem of this.particleSystems) {
+      particleSystem.ensureCapacity(
+        this.shootingStars[0].position.clone(),
+        newTime / 1000,
+      );
 
-    this.particleSystem.loop(newTime / 1000);
-
+      particleSystem.loop(newTime / 1000);
+    }
     // textElement.textMeshBg.position.add(newDirection);
+    // Warp effect
+    if (this.isIntro) {
+      if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+        this.initProgress();
+        window.audio.play(); // TODO: Finish this in a better way
+        this.pathGen.currentTime = 0; // Reset the timing for the lyrics
+        this.pathGen.unlockLyrics();
+        this.isIntro = false;
+      }
+      this.moveStars(newTime / 1000);
+    } else {
+      this.progress.setProgress(
+        (window.audio.currentTime / window.audio.duration) * 100,
+      );
+    }
+    if (this.changeNeeded) {
+      this.changeNeeded = null;
+    }
 
     // Render
     this.composer.render();
     this.stats.end();
+  }
+
+  initProgress() {
+    this.progress = new ProgressBar(
+      document.getElementById("progress-bar"),
+      {
+        speed: MAGIC_NUMBERS.PROGRESS.SPEED,
+      },
+      (progress) => {
+        // Do NOT use the audio as ref, it can desync!
+        // const difference =
+        //   -window.audio.currentTime + window.audio.duration * progress;
+        const difference =
+          -this.pathGen.currentTime + progress * window.audio.duration;
+        this.changeNeeded = difference * 1000;
+        window.audio.currentTime = progress * window.audio.duration;
+      },
+    );
   }
 }
