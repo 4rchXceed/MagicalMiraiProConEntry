@@ -1,5 +1,6 @@
 import { MAGIC_NUMBERS } from "./MagicNumbers.js";
 import { randInt } from "./utils/Math.js";
+import * as THREE from "three";
 
 export class Build {
   static MODELS = {
@@ -9,17 +10,27 @@ export class Build {
   };
   static modelsLoaded = {};
 
-  constructor(model, position) {
+  static LIGHT_MATERIAL = null;
+
+  constructor(model, position, isLight, distance) {
     this.model = model;
     this.position = position;
     this.mesh = null;
     this.id = null;
+    this.isLight = isLight;
+    this.isLighting = false;
+    this.light = isLight;
+    this.distance = distance;
   }
 
   place(scene) {
     const modelClone = Build.modelsLoaded[this.model].clone();
     modelClone.position.set(this.position.x, this.position.y, this.position.z);
+    for (const child of modelClone.children[0].children) {
+      child.userData.parent = modelClone.children[0];
+    }
     scene.add(modelClone);
+
     this.mesh = modelClone;
     this.mesh.name = "Build";
 
@@ -53,6 +64,22 @@ export class Build {
         },
       );
     }
+    const texture = loaders.texture.load(
+      "./assets/textures/building/windows.png",
+    );
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+
+    texture.repeat.set(30, 30);
+    this.LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
+      color: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
+      emissive: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
+      emissiveIntensity: MAGIC_NUMBERS.BUILD_LIGHT.INTENSITY,
+      emissiveMap: texture,
+    });
   }
 
   toGrid(gridSize) {
@@ -62,10 +89,51 @@ export class Build {
   }
 
   remove() {
-    if (this.mesh) {
-      this.mesh.visible = false;
-      this.mesh.remove(this.mesh.children[0]); // this.mesh is the folder, this.mesh.children[0] is the model
-      this.mesh = null;
+    Build.removeRecursive(this.mesh);
+    this.mesh = null;
+    this.isLight = this.light;
+    this.isLighting = false;
+  }
+
+  static removeRecursive(mesh) {
+    if (mesh) {
+      mesh.removeFromParent();
+      mesh.traverse((child) => {
+        // disposing materials
+        if (child.material && !child.material._isDisposed) {
+          // disposing textures
+          for (const [key, value] of Object.entries(child.material)) {
+            if (!value) continue;
+            if (typeof value.dispose === "function" && !value._isDisposed) {
+              value.dispose();
+              value._isDisposed = true;
+              child[key] = null;
+            }
+          }
+          child.material.dispose();
+          child.material._isDisposed = true;
+          child.material = null;
+        }
+        // disposing geometries
+        if (child.geometry?.dispose && !child.geometry._isDisposed) {
+          child.geometry.dispose();
+          child.geometry._isDisposed = true;
+          child.geometry = null;
+        }
+
+        // disposing skinned mesh
+        if (
+          child.skeleton?.boneTexture &&
+          !child.skeleton?.boneTexture._isDisposed
+        ) {
+          child.skeleton.boneTexture.dispose();
+          child.skeleton.boneTexture._isDisposed = true;
+          child.skeleton.boneTexture = null;
+        }
+
+        requestAnimationFrame(() => (child.children = null));
+      });
+      mesh = null;
     }
   }
 }

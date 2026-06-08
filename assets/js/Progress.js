@@ -12,10 +12,13 @@ export class ProgressBar {
     this.changeCallback = changeCallback;
     this.element.addEventListener("mousemove", this.mm.bind(this));
     this.element.addEventListener("click", this.clck.bind(this));
+    this.locked = false;
   }
 
   clck(e) {
-    this.changeCallback(e.offsetX / this.element.offsetWidth);
+    if (!this.locked) {
+      this.changeCallback(e.offsetX / this.element.offsetWidth);
+    }
   }
 
   mm(e) {

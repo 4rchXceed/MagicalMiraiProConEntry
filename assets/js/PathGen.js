@@ -68,6 +68,8 @@ export class PathGen {
 
     this.takenLyricsPositions = [];
     this.lyricsLocked = true;
+
+    this.speed = MAGIC_NUMBERS.POINTS_PER_SECOND;
   }
 
   unlockLyrics() {
@@ -162,11 +164,11 @@ export class PathGen {
     return points;
   }
 
-  update(deltaTime, fakeLyrics = false) {
+  update(deltaTime, timeChanged = false) {
     this.currentTime += deltaTime;
 
     const pointsToAdd = Math.floor(
-      (deltaTime + this.lastTimePoint) * MAGIC_NUMBERS.POINTS_PER_SECOND,
+      (deltaTime + this.lastTimePoint) * this.speed,
     );
 
     if (pointsToAdd == 0) {
@@ -180,6 +182,10 @@ export class PathGen {
 
     this.lastPointIndex = pathPointIndex;
 
+    if (pathPointIndex > this.pathPoints.length) {
+      return [null, null, null, true];
+    }
+
     const pathPoint = this.pathPoints[pathPointIndex];
 
     if (!this.lyricsLocked) {
@@ -192,7 +198,7 @@ export class PathGen {
           //   point = this.points[this.currentPointIndex + 2];
           // }
           // console.log(point.z - pathPoint.z);
-          if (!fakeLyrics) {
+          if (!timeChanged) {
             this.app
               .showLyrics(this.textsToShow[i][1], this.currentTime)
               .then((lyric) => {
@@ -229,7 +235,7 @@ export class PathGen {
         }
       }
 
-      if (fakeLyrics) {
+      if (timeChanged) {
         this.textsToShow = LYRICS_TEMP.filter(
           (text) => text[0] >= this.currentTime * 1000,
         ).map((text) => [text[0], text[1]]);
@@ -295,12 +301,25 @@ export class PathGen {
     const nextPoint =
       this.pathPoints[pathPointIndex + MAGIC_NUMBERS.PATH_NEXT_POINT_DISTANCE];
 
-    if (
-      pathPoint.z / MAGIC_NUMBERS.GRID_SIZE.Z +
-        MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET >=
-      this.currentRefillZ * MAGIC_NUMBERS.REFILL_INTERVAL
-    ) {
-      this.currentRefillZ++;
+    let changed = false;
+    if (deltaTime < 0) {
+      while (
+        pathPoint.z + MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET <=
+        this.currentRefillZ * MAGIC_NUMBERS.REFILL_INTERVAL
+      ) {
+        changed = true;
+        this.currentRefillZ--;
+      }
+    } else {
+      while (
+        pathPoint.z + MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET >=
+        this.currentRefillZ * MAGIC_NUMBERS.REFILL_INTERVAL
+      ) {
+        changed = true;
+        this.currentRefillZ++;
+      }
+    }
+    if (changed || timeChanged) {
       this.app.refill(this.currentRefillZ * MAGIC_NUMBERS.REFILL_INTERVAL);
     }
 
@@ -322,19 +341,24 @@ export class PathGen {
 
     this.lastCleanupPoint = cleanupPoint;
 
-    return [pathPoint, nextPoint, rail];
+    return [pathPoint, nextPoint, rail, false];
   }
 
   cleanup(pointI) {
     const point = this.pathPoints[pointI].clone();
     point.z -= MAGIC_NUMBERS.CLEANUP_RAYCAST_BEHIND;
-    let buildOverlap = this.app.raycastForward(
+    let buildOverlaps = this.app.raycastForward(
       point,
       // cleanupPoint.z - this.lastCleanupPoint.z,
       MAGIC_NUMBERS.CLEANUP_FORWARD_DISTANCE,
     );
-    for (const overlap of buildOverlap) {
-      overlap.visible = false;
+    for (const overlap of buildOverlaps) {
+      console.log(overlap);
+      if (overlap.userData.parent) {
+        for (const overlapChild of overlap.userData.parent.children) {
+          overlapChild.visible = false;
+        }
+      }
     }
   }
 }

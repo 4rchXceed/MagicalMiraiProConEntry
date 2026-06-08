@@ -60,6 +60,42 @@
     overflow: hidden;
 }
 
+#controls > div {
+    border: 2px solid black;
+    width: 90px;
+    height: 90px;
+    border-radius: 50px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    transform: scaleX(1) scaleY(1);
+    transition: all 0.5s cubic-bezier(0.82, -2.52, 0, 2.52);
+    z-index: 15;
+}
+
+#controls > div:hover {
+    transform: scaleX(1.2) scaleY(1.1);
+}
+
+#controls {
+    display: flex;
+    width: calc(90px * 2);
+    height: 90px;
+    position: absolute;
+    bottom: 50px;
+}
+
+#play-pause,
+#play-play {
+    position: absolute;
+}
+
+#play-pause {
+    transform: scale(0);
+}
+
 @keyframes bumt {
     0% {
         transform: translate(0, -50%);

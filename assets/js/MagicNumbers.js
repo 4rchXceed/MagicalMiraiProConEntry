@@ -55,15 +55,12 @@ export const MAGIC_NUMBERS = {
   },
   FLOOR_SIZE: {
     X: 500,
-    Z: 200,
+    OFFSET_Z: 30,
+    OFFSET_Z_END: 100,
   },
   NUMBER_STEPS_PER_POINTS: 200, // Number of steps to generate the path with [285]
   LYRICS_DISPLAY_TIME: 2, // Time in seconds to display the lyrics
-  LYRICS_DISPLAY_RANGE: {
-    MIN: 0,
-    MAX: 20,
-  },
-  LYRICS_SIZE: 0.5,
+  LYRICS_SIZE: 1,
   LYRICS_EMISSIVE_INTENSITY: 0.2,
   LYRICS_COLOR: 0xffffff,
   // LYRICS_FRAME: {
@@ -82,10 +79,7 @@ export const MAGIC_NUMBERS = {
   //   BORDER_EMISSIVE_INTENSITY: 0.5,
   //   FRAME_OFFSET: -0.25,
   // },
-  LYRICS_SPACING: {
-    X: 0.75,
-    Y: -2,
-  },
+
   LYRICS_SPAWN_BEFORE: 1,
   PATH_CONNECT: {
     X: 10,
@@ -112,19 +106,18 @@ export const MAGIC_NUMBERS = {
     SPEED: 20,
     DIRECTION_RANDOM: 0,
     GRAVITY: 5, // In THREE.js units per second
-    COLLISION_DISTANCE: 0.05,
     PATH_OFFSET: 20,
     POS_OFFSET_ADDED: 2, // Good number: 2
     RANDOM_OFFSET: {
-      X: 2,
-      Y: 2,
-      Z: 2,
+      X: 3,
+      Y: 3,
+      Z: 3,
     },
     BEHIND_CAMERA_OFFSET: 10, // In Points
     SCALE_TIME: 3, // In "%" of the total display time (1/SCALE_TIME*100 -> %)
   },
-  REFILL_INTERVAL: 20, // In grid units
-  REFILL_INTERVAL_OFFSET: 10,
+  REFILL_INTERVAL: 100, // In grid units
+  REFILL_INTERVAL_OFFSET: 50,
   CLEANUP_OFFSET: 200 * 3, // This one's a bit technical: it controls how far ahead the cleanup should be done: the cleanup is a check that removes buildings that are in the path, due to the Bezier path generation
   CLEANUP_FORWARD_DISTANCE: 0.1,
   CLEANUP_RAYCAST_BEHIND: 0.1,
@@ -149,20 +142,25 @@ export const MAGIC_NUMBERS = {
     INTRO_CUSTOM_PATH: [
       {
         X: 0,
-        Y: 0,
-        Z: -4000,
+        Y: 10,
+        Z: -40000,
       },
       {
         X: 0,
         Y: 10,
-        Z: -20,
+        Z: -40,
       },
       {
         X: 0,
         Y: 4,
-        Z: 0,
+        Z: -10,
       },
     ],
+    OUTRO_END: {
+      X: 0,
+      Y: 10,
+      Z: 1000,
+    },
     WARP: {
       NUMBER: 500,
       COLOR: 0x86cecb,
@@ -175,9 +173,18 @@ export const MAGIC_NUMBERS = {
       OFFSET_Z: 50,
       MAX_DISTANCE: 500,
       STOP_AT: -20,
+      START_DISTANCE: -400,
     },
   },
   PROGRESS: {
-    SPEED: 50,
+    SPEED: 25,
+  },
+  BUILD_LIGHT: {
+    INTENSITY: 0,
+    COLOR: 0xffffff,
+    START_AT: 20,
+    TIME_TO_FULL: 2,
+    MAX_DISTANCE: 4, // In grid points
+    DISTANCE_DECAY: 4,
   },
 };

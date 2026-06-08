@@ -5,19 +5,21 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { degToRad, randInt } from "./utils/Math.js";
+import { degToRad, lerp, randInt } from "./utils/Math.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { MAGIC_NUMBERS } from "./MagicNumbers.js";
 import { PathGen, Point } from "./PathGen.js";
 import { ParticleSystem } from "./ParticleSystem.js";
-import { LYRICS_TEMP } from "./LyricsTemp.js";
 import { BuildManager } from "./BuildManager.js";
 import { Build } from "./Build.js";
 import { ProgressBar } from "./Progress.js";
+import { Controls } from "./Controls.js";
 
 export class LyricsApp {
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
-  constructor(debug = false) {
+  constructor(audio, debug = false) {
+    // Audio source
+    this.audio = audio;
     // Data
     this.debug = debug;
     this.modelsLoaded = {};
@@ -29,6 +31,7 @@ export class LyricsApp {
     this.font = null;
     this.texts = {};
     this.zOffset = 0;
+    this.currentTime = 0;
 
     // Classes
     this.buildManager = new BuildManager();
@@ -58,7 +61,7 @@ export class LyricsApp {
       document.body.appendChild(this.stats.dom);
     }
 
-    this.songLength = window.audio.duration;
+    this.songLength = this.audio.duration;
 
     this.isIntro = true;
 
@@ -67,8 +70,20 @@ export class LyricsApp {
     this.progress = null;
 
     this.changeNeeded = null;
+
+    this.stop = false;
+    this.init();
+
+    this.canPlay = false;
+    this.initOk = false;
+    this.start = false;
+    this.end = false;
+
+    // Init play/pause btns
+    this.initControls();
   }
   init() {
+    this.initOk = true;
     this.loaders = {
       gltf: new GLTFLoader(),
       cubeTexture: new THREE.CubeTextureLoader(),
@@ -107,6 +122,7 @@ export class LyricsApp {
 
     // Load models and generate elements
     this.generateElements();
+
     Build.loadModels(() => this.loadedCallback(), this.loaders);
   }
 
@@ -150,6 +166,8 @@ export class LyricsApp {
           this.buildManager.placeVirtualBuilds(
             j * MAGIC_NUMBERS.GRID_SIZE.X,
             z,
+            Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
+            Math.abs(x - j),
           );
         }
       }
@@ -170,6 +188,7 @@ export class LyricsApp {
         z: customPoint.Z,
       });
     }
+
     // let lastBuild = null;
     for (const build of choosenBuilds) {
       // if (lastBuild) {
@@ -191,7 +210,12 @@ export class LyricsApp {
         isMiddlePoint: false,
       });
     }
-
+    const endPoint = buildPositions[buildPositions.length - 1];
+    buildPositions.push({
+      x: MAGIC_NUMBERS.INTRO.OUTRO_END.X,
+      y: MAGIC_NUMBERS.INTRO.OUTRO_END.Y,
+      z: MAGIC_NUMBERS.INTRO.OUTRO_END.Z + endPoint.z,
+    });
     return buildPositions;
   }
 
@@ -299,14 +323,23 @@ export class LyricsApp {
     const neededPoints = PathGen.getNumberOfPointsNeeded();
     console.log("Needed Points for the song:", neededPoints);
 
-    const buildPositions = this.getPoints();
+    this.buildPositions = this.getPoints();
 
-    this.floor.geometry.scale(1, 1, neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
+    this.floor.geometry.scale(
+      MAGIC_NUMBERS.FLOOR_SIZE.X,
+      1,
+      this.buildPositions[this.buildPositions.length - 2].z +
+        MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END,
+    );
+    this.floor.position.z =
+      this.buildPositions[this.buildPositions.length - 2].z / 2 -
+      MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z +
+      MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END / 2;
 
     // this.buildGrid(neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
 
     this.pathGen = new PathGen(
-      buildPositions,
+      this.buildPositions,
       this.pathFinder,
       this.pathGrid,
       this,
@@ -328,7 +361,13 @@ export class LyricsApp {
       MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES,
     );
     this.particleSystems.push(particleSystem);
-    this.renderer.setAnimationLoop((time) => this.loop(time));
+    requestAnimationFrame((d) => this.loopWrapper(d, 0));
+  }
+
+  loopWrapper(delta, last) {
+    this.currentTime += delta - last;
+    this.loop(this.currentTime);
+    requestAnimationFrame((d) => this.loopWrapper(d, delta));
   }
 
   raycastForward(point, distance) {
@@ -382,8 +421,11 @@ export class LyricsApp {
   }
 
   refill(nextRefillZ) {
-    this.buildManager.showVirtualBuilds(this.scene, nextRefillZ);
-    const lastRefillZ = nextRefillZ - MAGIC_NUMBERS.REFILL_INTERVAL;
+    const lastRefillZ =
+      nextRefillZ -
+      MAGIC_NUMBERS.REFILL_INTERVAL -
+      MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET;
+    this.buildManager.showVirtualBuilds(this.scene, nextRefillZ, lastRefillZ);
     this.buildManager.removeBuildsBeforeZ(this.scene, lastRefillZ);
   }
 
@@ -519,11 +561,7 @@ export class LyricsApp {
 
   generateElements() {
     // Floor
-    const geometry = new THREE.BoxGeometry(
-      MAGIC_NUMBERS.FLOOR_SIZE.X,
-      0.1,
-      MAGIC_NUMBERS.FLOOR_SIZE.Z,
-    );
+    const geometry = new THREE.BoxGeometry(1, 0.1, 1);
     const material = new THREE.MeshStandardMaterial({
       color: 0x3a3a3a,
       roughness: 0.5,
@@ -531,7 +569,6 @@ export class LyricsApp {
     });
     this.floor = new THREE.Mesh(geometry, material);
     this.floor.position.y = -0.1;
-    this.floor.position.z = this.AREA_SIZE.z / 2;
     this.floor.position.x = this.AREA_SIZE.x / 2;
 
     // Camera spotlight
@@ -604,6 +641,7 @@ export class LyricsApp {
   }
 
   generateWarp() {
+    this.allStarsDistance = MAGIC_NUMBERS.INTRO.WARP.START_DISTANCE;
     const stars = [];
     const warpMaterial = new THREE.MeshStandardMaterial({
       color: MAGIC_NUMBERS.INTRO.WARP.COLOR,
@@ -653,7 +691,10 @@ export class LyricsApp {
           ),
         );
       if (pos.z < MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
-        warpStar.position.set(pos.x, pos.y, pos.z);
+        warpStar.position.set(pos.x, pos.y, pos.z - this.allStarsDistance);
+        if (this.allStarsDistance < 0) {
+          this.allStarsDistance += dt;
+        }
         warpStar.userData.z += -MAGIC_NUMBERS.INTRO.WARP.OFFSET_ADD * dt;
         if (pos.z < this.camera.position.z) {
           warpStar.userData.z = randInt(
@@ -703,13 +744,106 @@ export class LyricsApp {
       // }
       this.isFirstFrame = false;
       this.generateWarp();
+      this.composer.render();
       return;
     }
 
-    const [newPos, objective, rail] = this.pathGen.update(
+    if (this.stop) return; // "kill" switch
+
+    if (this.end) {
+      if (newTime === 0) {
+        newTime = 1;
+      }
+
+      const lookAtMatrix = new THREE.Matrix4();
+      lookAtMatrix.lookAt(
+        this.camera.position,
+        new THREE.Vector3(
+          MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].X,
+          MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].Y,
+          MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ,
+        ),
+        this.camera.up,
+      );
+
+      const targetQuat = new THREE.Quaternion().setFromRotationMatrix(
+        lookAtMatrix,
+      );
+
+      this.camera.quaternion.slerp(targetQuat, 0.05);
+      this.camera.position.z +=
+        (newTime / 1000) * MAGIC_NUMBERS.INTRO.OUTRO_END.Z;
+      if (
+        this.camera.position.z >
+        MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ
+      ) {
+        this.isIntro = true;
+        this.end = false;
+        this.isFirstFrame = true;
+        this.start = false;
+        this.audio.currentTime = 0;
+        this.pathGen = new PathGen(
+          this.buildPositions,
+          this.pathFinder,
+          this.pathGrid,
+          this,
+        );
+        this.controls.playBtnPlayIcon.style.transform = "scale(1)";
+        this.controls.playBtnPauseIcon.style.transform = "scale(0)";
+        this.controls.isPlaying = false;
+        this.canPlay = false;
+        this.progress.setProgress(0);
+        this.progress.locked = true;
+      }
+      // Render
+      this.stats.end();
+      this.composer.render();
+      return;
+    }
+
+    // TODO: Flag if it shouldn't start the song EVEN if the Z > 0
+    const [newPos, objective, rail, end] = this.pathGen.update(
       newTime / 1000,
       this.changeNeeded !== null,
     );
+
+    for (const build of this.buildManager.builds) {
+      if (build.mesh) {
+        // Avoid errors when skipping
+        if (
+          build.isLight &&
+          build.position.z - newPos.z <
+            MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
+              Math.pow(
+                build.distance,
+                1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
+              )
+        ) {
+          // console.log(build.mesh);
+          for (const mesh of [
+            build.mesh.children[0].children[1],
+            // build.mesh.children[0].children[0],
+          ]) {
+            // const mesh = build.mesh.children[0].children[0];
+            mesh.material = Build.LIGHT_MATERIAL.clone();
+            mesh.material.emissiveIntensity = 0;
+            build.isLight = false;
+            build.isLighting = true;
+          }
+        }
+        if (build.isLighting) {
+          // const mesh = build.mesh.children[0].children[0];
+          for (const mesh of [build.mesh.children[0].children[1]]) {
+            mesh.material.emissiveIntensity +=
+              (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
+            if (mesh.material.emissiveIntensity > 1) {
+              build.isLighting = false;
+              mesh.material.emissiveIntensity = 1;
+            }
+          }
+        }
+      }
+    }
     this.camera.position.set(newPos.x, newPos.y, newPos.z);
 
     if (objective) {
@@ -747,19 +881,38 @@ export class LyricsApp {
     if (this.isIntro) {
       if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
         this.initProgress();
-        window.audio.play(); // TODO: Finish this in a better way
+        this.canPlay = true;
+        this.audio.play();
         this.pathGen.currentTime = 0; // Reset the timing for the lyrics
         this.pathGen.unlockLyrics();
         this.isIntro = false;
       }
       this.moveStars(newTime / 1000);
     } else {
+      this.progress.locked = false;
       this.progress.setProgress(
-        (window.audio.currentTime / window.audio.duration) * 100,
+        (this.audio.currentTime / this.audio.duration) * 100,
       );
     }
     if (this.changeNeeded) {
       this.changeNeeded = null;
+    }
+
+    if (
+      !this.start &&
+      newPos.z > MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].Z / 4
+    ) {
+      this.pathGen.currentTime = 0;
+      this.pathGen.currentPoint = 0;
+    }
+
+    if (this.audio.currentTime >= this.audio.duration) {
+      this.end = true;
+      this.startZ = newPos.z;
+    }
+
+    if (this.debug) {
+      // console.log(this.scene.children.filter((e) => e.name === "Build").length);
     }
 
     // Render
@@ -776,12 +929,37 @@ export class LyricsApp {
       (progress) => {
         // Do NOT use the audio as ref, it can desync!
         // const difference =
-        //   -window.audio.currentTime + window.audio.duration * progress;
+        //   -this.audio.currentTime + this.audio.duration * progress;
         const difference =
-          -this.pathGen.currentTime + progress * window.audio.duration;
+          -this.pathGen.currentTime + progress * this.audio.duration;
         this.changeNeeded = difference * 1000;
-        window.audio.currentTime = progress * window.audio.duration;
+        this.audio.currentTime = progress * this.audio.duration;
+        if (this.stop) {
+          this.controls.playBtnPlayIcon.style.transform = "scale(1)";
+          this.controls.playBtnPauseIcon.style.transform = "scale(0)";
+          this.resume();
+        }
+        this.buildManager.clearBuilds(this.scene);
       },
     );
+  }
+  initControls() {
+    this.controls = new Controls(
+      document.getElementById("controls"),
+      () => this.resume(),
+      () => {
+        this.audio.pause();
+        this.stop = true;
+      },
+    );
+  }
+  resume() {
+    if (!this.start) {
+      this.start = true;
+    }
+    if (this.canPlay) {
+      this.audio.play();
+    }
+    this.stop = false;
   }
 }

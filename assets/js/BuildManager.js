@@ -1,5 +1,6 @@
 import { Build } from "./Build.js";
 import { MAGIC_NUMBERS } from "./MagicNumbers.js";
+import { randInt } from "./utils/Math.js";
 
 export class BuildManager {
   constructor() {
@@ -13,7 +14,7 @@ export class BuildManager {
     return `${gridX}-${gridZ}`;
   }
 
-  placeVirtualBuilds(gridX, gridZ) {
+  placeVirtualBuilds(gridX, gridZ, isLight, distance) {
     const buildId = Build.getRandomBuildId();
 
     if (!buildId) return false; // Skip if no buildId is available
@@ -21,7 +22,12 @@ export class BuildManager {
     const gridHash = this.gridToHash(gridX, gridZ);
     if (this.usedGrids.includes(gridHash)) return false; // Skip if grid is already used
 
-    const build = new Build(buildId, { x: gridX, y: 0, z: gridZ });
+    const build = new Build(
+      buildId,
+      { x: gridX, y: 0, z: gridZ },
+      isLight,
+      distance,
+    );
     // build.place(scene);
     this.usedGrids.push(gridHash);
     this.builds.push(build);
@@ -76,9 +82,9 @@ export class BuildManager {
   //   return this.refillPoints;
   // }
 
-  showVirtualBuilds(scene, toZ) {
+  showVirtualBuilds(scene, toZ, minZ) {
     const virtualBuilds = this.builds.filter(
-      (build) => build.position.z <= toZ * this.gridSize.Z,
+      (build) => build.position.z <= toZ && build.position.z > minZ,
     );
     // console.log(virtualBuilds);
     for (const build of virtualBuilds) {
@@ -93,30 +99,28 @@ export class BuildManager {
   //   this.builds = this.builds.filter((build) => build.mesh !== mesh);
   // }
 
-  removeBuild(build) {
-    const gridX = build.position.x;
-    const gridZ = build.position.z;
-    const gridHash = this.gridToHash(gridX, gridZ);
-    this.usedGrids = this.usedGrids.filter((hash) => hash !== gridHash);
-    this.builds = this.builds.filter((b) => b !== build);
+  removeBuild(build, scene) {
+    // const gridX = build.position.x;
+    // const gridZ = build.position.z;
+    // const gridHash = this.gridToHash(gridX, gridZ);
     build.remove();
+    // this.usedGrids = this.usedGrids.filter((hash) => hash !== gridHash);
+    // this.builds = this.builds.filter((b) => b !== build);
   }
 
   clearBuilds(scene) {
-    for (const build of this.builds) {
-      build.remove(scene);
+    const builds = scene.children.filter((e) => e.name === "Build");
+    for (const build of builds) {
+      Build.removeRecursive(build);
     }
-    this.builds = [];
-    this.usedGrids = [];
+    this.builds.map((b) => (b.mesh = null));
   }
 
   removeBuildsBeforeZ(scene, z) {
-    const buildsToRemove = this.builds.filter(
-      (build) => build.position.z < z * this.gridSize.Z,
-    );
-    console.log(buildsToRemove);
+    const buildsToRemove = this.builds.filter((build) => {
+      return build.position.z < z;
+    });
     for (const build of buildsToRemove) {
-      console.log("Removing build at z:", build.position.z);
       this.removeBuild(build, scene);
     }
   }
