@@ -14,12 +14,12 @@ export class BuildManager {
     return `${gridX}-${gridZ}`;
   }
 
-  placeVirtualBuilds(gridX, gridZ, isLight, distance) {
+  placeVirtualBuild(gridX, gridZ, isLight, distance) {
     const buildId = Build.getRandomBuildId();
 
     if (!buildId) return false; // Skip if no buildId is available
 
-    const gridHash = this.gridToHash(gridX, gridZ);
+    const gridHash = this.gridToHash(Math.round(gridX), Math.round(gridZ));
     if (this.usedGrids.includes(gridHash)) return false; // Skip if grid is already used
 
     const build = new Build(

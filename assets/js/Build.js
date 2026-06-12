@@ -24,11 +24,13 @@ export class Build {
   }
 
   place(scene) {
+    if (this.mesh) return;
     const modelClone = Build.modelsLoaded[this.model].clone();
     modelClone.position.set(this.position.x, this.position.y, this.position.z);
     for (const child of modelClone.children[0].children) {
       child.userData.parent = modelClone.children[0];
     }
+    modelClone.children[0].userData.parent = modelClone;
     scene.add(modelClone);
 
     this.mesh = modelClone;
@@ -73,7 +75,10 @@ export class Build {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
 
-    texture.repeat.set(30, 30);
+    texture.repeat.set(
+      MAGIC_NUMBERS.BUILD_LIGHT.TEXTURE_SIZE,
+      MAGIC_NUMBERS.BUILD_LIGHT.TEXTURE_SIZE,
+    );
     this.LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
       color: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
       emissive: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,

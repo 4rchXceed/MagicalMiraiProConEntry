@@ -16,13 +16,6 @@ export function coordToGrid(x, z, gridSize) {
   return { x: gridX, z: gridZ };
 }
 
-export function gridToCoord(gridX, gridZ, gridSize) {
-  // TODO: Moved to BuildManager, remove from here
-  const x = gridX * gridSize;
-  const z = gridZ * gridSize;
-  return { x, z };
-}
-
 export function getGridMaxElements(areaSize, gridSize) {
   const gridCountX = Math.ceil(areaSize.x / gridSize);
   const gridCountZ = Math.ceil(areaSize.z / gridSize);

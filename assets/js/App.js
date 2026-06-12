@@ -14,6 +14,7 @@ import { BuildManager } from "./BuildManager.js";
 import { Build } from "./Build.js";
 import { ProgressBar } from "./Progress.js";
 import { Controls } from "./Controls.js";
+import { BuildInteraction } from "./BuildInteraction.js";
 
 export class LyricsApp {
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
@@ -82,6 +83,7 @@ export class LyricsApp {
     // Init play/pause btns
     this.initControls();
   }
+
   init() {
     this.initOk = true;
     this.loaders = {
@@ -113,12 +115,20 @@ export class LyricsApp {
     this.camera.rotation.x = degToRad(0);
 
     // Add to scene
-    document.body.appendChild(this.renderer.domElement); // TODO: move this to another element
+    document.body.appendChild(this.renderer.domElement);
     this.scene.add(this.camera);
 
     // Handle composer
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(this.bloomPass);
+
+    // BuildInteraction
+    this.buildInteractionManager = new BuildInteraction(
+      this.scene,
+      this.buildManager,
+      this.renderer.domElement,
+      this.camera,
+    );
 
     // Load models and generate elements
     this.generateElements();
@@ -163,12 +173,32 @@ export class LyricsApp {
         j++
       ) {
         if (j !== x) {
-          this.buildManager.placeVirtualBuilds(
-            j * MAGIC_NUMBERS.GRID_SIZE.X,
-            z,
-            Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
-            Math.abs(x - j),
-          );
+          if (Math.abs(j - x) === 1) {
+            this.buildManager.placeVirtualBuild(
+              j * MAGIC_NUMBERS.GRID_SIZE.X,
+              z,
+              Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
+              Math.abs(x - j),
+            );
+          } else {
+            for (let i = 1; i <= MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER; i++) {
+              const max =
+                (MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS *
+                  MAGIC_NUMBERS.GRID_SIZE.Z) /
+                MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER;
+              const zOffset =
+                i *
+                ((MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS *
+                  MAGIC_NUMBERS.GRID_SIZE.Z) /
+                  MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER);
+              this.buildManager.placeVirtualBuild(
+                j * MAGIC_NUMBERS.GRID_SIZE.X,
+                z + zOffset,
+                Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
+                Math.abs(x - j),
+              );
+            }
+          }
         }
       }
     }
@@ -320,9 +350,6 @@ export class LyricsApp {
   }
 
   async loadedCallback() {
-    const neededPoints = PathGen.getNumberOfPointsNeeded();
-    console.log("Needed Points for the song:", neededPoints);
-
     this.buildPositions = this.getPoints();
 
     this.floor.geometry.scale(
@@ -777,73 +804,75 @@ export class LyricsApp {
         this.camera.position.z >
         MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ
       ) {
-        this.isIntro = true;
-        this.end = false;
-        this.isFirstFrame = true;
-        this.start = false;
-        this.audio.currentTime = 0;
-        this.pathGen = new PathGen(
-          this.buildPositions,
-          this.pathFinder,
-          this.pathGrid,
-          this,
-        );
-        this.controls.playBtnPlayIcon.style.transform = "scale(1)";
-        this.controls.playBtnPauseIcon.style.transform = "scale(0)";
-        this.controls.isPlaying = false;
-        this.canPlay = false;
-        this.progress.setProgress(0);
-        this.progress.locked = true;
+        this.restart();
       }
       // Render
       this.stats.end();
       this.composer.render();
       return;
     }
-
-    // TODO: Flag if it shouldn't start the song EVEN if the Z > 0
-    const [newPos, objective, rail, end] = this.pathGen.update(
+    this.buildInteractionManager.update(newTime / 1000);
+    const [newPos, objective, rail] = this.pathGen.update(
       newTime / 1000,
       this.changeNeeded !== null,
+      !this.start,
     );
-
-    for (const build of this.buildManager.builds) {
-      if (build.mesh) {
-        // Avoid errors when skipping
-        if (
-          build.isLight &&
-          build.position.z - newPos.z <
-            MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
-              Math.pow(
-                build.distance,
-                1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
-              )
-        ) {
-          // console.log(build.mesh);
-          for (const mesh of [
-            build.mesh.children[0].children[1],
-            // build.mesh.children[0].children[0],
-          ]) {
-            // const mesh = build.mesh.children[0].children[0];
-            mesh.material = Build.LIGHT_MATERIAL.clone();
-            mesh.material.emissiveIntensity = 0;
-            build.isLight = false;
-            build.isLighting = true;
+    if (this.start) {
+      for (const build of this.buildManager.builds) {
+        if (build.mesh) {
+          // Avoid errors when skipping
+          if (
+            build.isLight &&
+            build.position.z - newPos.z <
+              MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
+                Math.pow(
+                  build.distance,
+                  1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
+                )
+          ) {
+            // console.log(build.mesh);
+            for (const mesh of [
+              build.mesh.children[0].children[1],
+              // build.mesh.children[0].children[0],
+            ]) {
+              // const mesh = build.mesh.children[0].children[0];
+              mesh.material = Build.LIGHT_MATERIAL.clone();
+              mesh.material.emissiveIntensity = 0;
+              build.isLight = false;
+              build.isLighting = true;
+            }
           }
-        }
-        if (build.isLighting) {
-          // const mesh = build.mesh.children[0].children[0];
-          for (const mesh of [build.mesh.children[0].children[1]]) {
-            mesh.material.emissiveIntensity +=
-              (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
-            if (mesh.material.emissiveIntensity > 1) {
-              build.isLighting = false;
-              mesh.material.emissiveIntensity = 1;
+          if (build.isLighting) {
+            // const mesh = build.mesh.children[0].children[0];
+            for (const mesh of [build.mesh.children[0].children[1]]) {
+              mesh.material.emissiveIntensity +=
+                (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
+              if (mesh.material.emissiveIntensity > 1) {
+                build.isLighting = false;
+                mesh.material.emissiveIntensity = 1;
+              }
             }
           }
         }
       }
+      if (this.isIntro) {
+        if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+          this.initProgress();
+          this.canPlay = true;
+          this.audio.play();
+          this.pathGen.currentTime = 0; // Reset the timing for the lyrics
+          this.pathGen.unlockLyrics();
+          this.isIntro = false;
+        }
+      } else {
+        this.progress.locked = false;
+        this.progress.setProgress(
+          (this.audio.currentTime / this.audio.duration) * 100,
+        );
+      }
     }
+    // Warp effect
+
     this.camera.position.set(newPos.x, newPos.y, newPos.z);
 
     if (objective) {
@@ -877,23 +906,10 @@ export class LyricsApp {
       particleSystem.loop(newTime / 1000);
     }
     // textElement.textMeshBg.position.add(newDirection);
-    // Warp effect
     if (this.isIntro) {
-      if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
-        this.initProgress();
-        this.canPlay = true;
-        this.audio.play();
-        this.pathGen.currentTime = 0; // Reset the timing for the lyrics
-        this.pathGen.unlockLyrics();
-        this.isIntro = false;
-      }
       this.moveStars(newTime / 1000);
-    } else {
-      this.progress.locked = false;
-      this.progress.setProgress(
-        (this.audio.currentTime / this.audio.duration) * 100,
-      );
     }
+
     if (this.changeNeeded) {
       this.changeNeeded = null;
     }
@@ -911,13 +927,33 @@ export class LyricsApp {
       this.startZ = newPos.z;
     }
 
-    if (this.debug) {
-      // console.log(this.scene.children.filter((e) => e.name === "Build").length);
-    }
+    // if (this.debug) {
+    //   console.log(this.scene.children.filter((e) => e.name === "Build").length);
+    // }
 
     // Render
     this.composer.render();
     this.stats.end();
+  }
+
+  restart() {
+    this.isIntro = true;
+    this.end = false;
+    this.isFirstFrame = true;
+    this.start = false;
+    this.audio.currentTime = 0;
+    this.pathGen = new PathGen(
+      this.buildPositions,
+      this.pathFinder,
+      this.pathGrid,
+      this,
+    );
+    this.controls.playBtnPlayIcon.style.transform = "scale(1)";
+    this.controls.playBtnPauseIcon.style.transform = "scale(0)";
+    this.controls.isPlaying = false;
+    this.canPlay = false;
+    this.progress.setProgress(0);
+    this.progress.locked = true;
   }
 
   initProgress() {

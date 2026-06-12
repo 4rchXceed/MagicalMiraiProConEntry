@@ -113,7 +113,7 @@ export const MAGIC_NUMBERS = {
       Y: 3,
       Z: 3,
     },
-    BEHIND_CAMERA_OFFSET: 10, // In Points
+    BEHIND_CAMERA_OFFSET: 0, // In Points
     SCALE_TIME: 3, // In "%" of the total display time (1/SCALE_TIME*100 -> %)
   },
   REFILL_INTERVAL: 100, // In grid units
@@ -180,11 +180,28 @@ export const MAGIC_NUMBERS = {
     SPEED: 25,
   },
   BUILD_LIGHT: {
+    TEXTURE_SIZE: 20,
     INTENSITY: 0,
     COLOR: 0xffffff,
     START_AT: 20,
     TIME_TO_FULL: 2,
     MAX_DISTANCE: 4, // In grid points
     DISTANCE_DECAY: 4,
+  },
+  FAKE_BUILD_LAYER_NUMBER: 2,
+  BUILD_INTERACTION: {
+    HOVER_ANIM_TIME: 0.2,
+    SCALE_HOVER: 1.1,
+    FIREWORK_Y_OFFSET: 2,
+    FIREWORK: {
+      NBR_TRAIL: 50,
+      UNIT_PER_SECOND: 10,
+      LIFETIME: 0.5,
+      COLOR: 0x86cecb,
+      INTENSITY: 1,
+      NBR_PARTICLES: 50,
+      EXPLOSION_LIFETIME: 1,
+      PARTICLE_RADIUS: 0.1,
+    },
   },
 };

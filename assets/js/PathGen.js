@@ -77,7 +77,6 @@ export class PathGen {
   }
 
   generatePath() {
-    // const start = new Point(0, 3, 0); // TODO: Add start
     let pathSmooth = [];
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
@@ -144,27 +143,7 @@ export class PathGen {
   //   return closestPointIndex;
   // }
 
-  static getNumberOfPointsNeeded() {
-    // TODO: Please find a better way :)
-    let points = 0;
-
-    let i = 0;
-    while (i < LYRICS_TEMP.length) {
-      i++;
-      let nextTime = LYRICS_TEMP[i + 1] - LYRICS_TEMP[i];
-      while (
-        nextTime < MAGIC_NUMBERS.LYRICS_MIN_TIME &&
-        i < LYRICS_TEMP.length
-      ) {
-        i++;
-        nextTime += LYRICS_TEMP[i + 1] - LYRICS_TEMP[i];
-      }
-      points++;
-    }
-    return points;
-  }
-
-  update(deltaTime, timeChanged = false) {
+  update(deltaTime, timeChanged = false, shouldnt_start = false) {
     this.currentTime += deltaTime;
 
     const pointsToAdd = Math.floor(
@@ -183,10 +162,25 @@ export class PathGen {
     this.lastPointIndex = pathPointIndex;
 
     if (pathPointIndex > this.pathPoints.length) {
-      return [null, null, null, true];
+      return [null, null, null];
+    }
+
+    const rail = [];
+
+    for (let i = 0; i < MAGIC_NUMBERS.SHOOTING_STAR.NUMBER; i++) {
+      rail.push(
+        this.pathPoints[
+          pathPointIndex +
+            i * MAGIC_NUMBERS.SHOOTING_STAR.DISTANCE +
+            MAGIC_NUMBERS.SHOOTING_STAR.MIN_DISTANCE
+        ],
+      );
     }
 
     const pathPoint = this.pathPoints[pathPointIndex];
+
+    const nextPoint =
+      this.pathPoints[pathPointIndex + MAGIC_NUMBERS.PATH_NEXT_POINT_DISTANCE];
 
     if (!this.lyricsLocked) {
       for (let i = 0; i < this.textsToShow.length; i++) {
@@ -249,6 +243,9 @@ export class PathGen {
       for (let i = 0; i < this.lyrics.length; i++) {
         this.lyrics[i].posOffset +=
           pointsToAdd * MAGIC_NUMBERS.LYRICS.POS_OFFSET_ADDED;
+        if (!this.pathPoints[this.lyrics[i].i + this.lyrics[i].posOffset]) {
+          continue;
+        }
         const pathPoint =
           this.pathPoints[this.lyrics[i].i + this.lyrics[i].posOffset].clone();
         const offset3d = this.lyrics[i].offset3d;
@@ -282,24 +279,9 @@ export class PathGen {
       }
     }
 
-    const rail = [];
-
-    for (let i = 0; i < MAGIC_NUMBERS.SHOOTING_STAR.NUMBER; i++) {
-      rail.push(
-        this.pathPoints[
-          pathPointIndex +
-            i * MAGIC_NUMBERS.SHOOTING_STAR.DISTANCE +
-            MAGIC_NUMBERS.SHOOTING_STAR.MIN_DISTANCE
-        ],
-      );
-    }
-
     if (this.points[this.currentPointIndex + 1].z <= pathPoint.z) {
       this.currentPointIndex++;
     }
-
-    const nextPoint =
-      this.pathPoints[pathPointIndex + MAGIC_NUMBERS.PATH_NEXT_POINT_DISTANCE];
 
     let changed = false;
     if (deltaTime < 0) {
@@ -341,19 +323,18 @@ export class PathGen {
 
     this.lastCleanupPoint = cleanupPoint;
 
-    return [pathPoint, nextPoint, rail, false];
+    return [pathPoint, nextPoint, rail];
   }
 
   cleanup(pointI) {
     const point = this.pathPoints[pointI].clone();
-    point.z -= MAGIC_NUMBERS.CLEANUP_RAYCAST_BEHIND;
+    // point.z -= MAGIC_NUMBERS.CLEANUP_RAYCAST_BEHIND;
     let buildOverlaps = this.app.raycastForward(
       point,
       // cleanupPoint.z - this.lastCleanupPoint.z,
       MAGIC_NUMBERS.CLEANUP_FORWARD_DISTANCE,
     );
     for (const overlap of buildOverlaps) {
-      console.log(overlap);
       if (overlap.userData.parent) {
         for (const overlapChild of overlap.userData.parent.children) {
           overlapChild.visible = false;
