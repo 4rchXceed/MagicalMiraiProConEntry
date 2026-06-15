@@ -12,6 +12,8 @@ export class Build {
 
   static LIGHT_MATERIAL = null;
 
+  static DEFAULT_BUILD_MATERIAL = null;
+
   constructor(model, position, isLight, distance) {
     this.model = model;
     this.position = position;
@@ -29,6 +31,13 @@ export class Build {
     modelClone.position.set(this.position.x, this.position.y, this.position.z);
     for (const child of modelClone.children[0].children) {
       child.userData.parent = modelClone.children[0];
+    }
+    for (const mesh of [
+      modelClone.children[0].children[1],
+      // build.mesh.children[0].children[0],
+    ]) {
+      // const mesh = build.mesh.children[0].children[0];
+      mesh.material = Build.DEFAULT_BUILD_MATERIAL.clone();
     }
     modelClone.children[0].userData.parent = modelClone;
     scene.add(modelClone);
@@ -84,6 +93,12 @@ export class Build {
       emissive: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
       emissiveIntensity: MAGIC_NUMBERS.BUILD_LIGHT.INTENSITY,
       emissiveMap: texture,
+    });
+
+    this.DEFAULT_BUILD_MATERIAL = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      emissive: 0xffffff,
+      emissiveIntensity: 0,
     });
   }
 

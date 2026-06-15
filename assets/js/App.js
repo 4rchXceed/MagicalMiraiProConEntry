@@ -15,10 +15,14 @@ import { Build } from "./Build.js";
 import { ProgressBar } from "./Progress.js";
 import { Controls } from "./Controls.js";
 import { BuildInteraction } from "./BuildInteraction.js";
+import { SongSelector } from "./SongSelector.js";
+import { SettingsPanel } from "./SettingsPanel.js";
 
 export class LyricsApp {
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
-  constructor(audio, debug = false) {
+  constructor(audio, debug = false, seed = 39) {
+    if (isNaN(seed)) seed = 39;
+    Srand.seed(seed);
     // Audio source
     this.audio = audio;
     // Data
@@ -82,6 +86,12 @@ export class LyricsApp {
 
     // Init play/pause btns
     this.initControls();
+
+    // Settings
+    this.settings = new SettingsPanel();
+
+    // Song selector
+    this.songSelector = new SongSelector(() => this.resume());
   }
 
   init() {
@@ -233,7 +243,7 @@ export class LyricsApp {
       buildPositions.push({
         x: build.pos.x,
         y:
-          Math.random() *
+          Srand.random() *
             (MAGIC_NUMBERS.PATH_Y.MAX_Y - MAGIC_NUMBERS.PATH_Y.MIN_Y + 1) +
           MAGIC_NUMBERS.PATH_Y.MIN_Y,
         z: build.pos.z + MAGIC_NUMBERS.BUILD_PATH_OFFSET.Z,
@@ -573,7 +583,7 @@ export class LyricsApp {
     const textElement = {
       textMesh,
       // direction: cameraDirection,
-      gravity: Math.random() * MAGIC_NUMBERS.LYRICS.GRAVITY,
+      gravity: Srand.random() * MAGIC_NUMBERS.LYRICS.GRAVITY,
       i: 0,
       scaleY: 0,
     };
@@ -664,7 +674,7 @@ export class LyricsApp {
   }
 
   generatePos() {
-    return (Math.random() - 0.5) * MAGIC_NUMBERS.INTRO.XY_BOUNDS;
+    return (Srand.random() - 0.5) * MAGIC_NUMBERS.INTRO.XY_BOUNDS;
   }
 
   generateWarp() {
@@ -687,10 +697,10 @@ export class LyricsApp {
       const warpStar = new THREE.Mesh(star, warpMaterial);
       warpStar.userData.z = randInt(0, MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE);
       warpStar.userData.y =
-        Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
+        Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
         MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
       warpStar.userData.x =
-        Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
+        Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
         MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
       warpStar.scale.z = MAGIC_NUMBERS.INTRO.WARP.SCALE;
       if (
@@ -747,14 +757,17 @@ export class LyricsApp {
   //   warpStar.position.set(pos.x, pos.y, pos.z);
   //   warpStar.userData.init = true;
   //   warpStar.userData.distance =
-  //     Math.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX +
+  //     Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX +
   //     MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN;
   //   this.scene.add(warpStar);
   //   this.warpStars.push(warpStar);
   // }
 
   async loop(time) {
-    this.stats.begin();
+    let bef = Date.now();
+    if (this.debug) {
+      this.stats.begin();
+    }
     // IMPORTANT: The first frame delta is from the time the page started loading, so we need to ignore it to avoid huge jumps in the path
     // Metric in milliseconds
     let newTime = time - this.lastTime;
@@ -817,43 +830,10 @@ export class LyricsApp {
       this.changeNeeded !== null,
       !this.start,
     );
+
     if (this.start) {
       for (const build of this.buildManager.builds) {
-        if (build.mesh) {
-          // Avoid errors when skipping
-          if (
-            build.isLight &&
-            build.position.z - newPos.z <
-              MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
-                Math.pow(
-                  build.distance,
-                  1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
-                )
-          ) {
-            // console.log(build.mesh);
-            for (const mesh of [
-              build.mesh.children[0].children[1],
-              // build.mesh.children[0].children[0],
-            ]) {
-              // const mesh = build.mesh.children[0].children[0];
-              mesh.material = Build.LIGHT_MATERIAL.clone();
-              mesh.material.emissiveIntensity = 0;
-              build.isLight = false;
-              build.isLighting = true;
-            }
-          }
-          if (build.isLighting) {
-            // const mesh = build.mesh.children[0].children[0];
-            for (const mesh of [build.mesh.children[0].children[1]]) {
-              mesh.material.emissiveIntensity +=
-                (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
-              if (mesh.material.emissiveIntensity > 1) {
-                build.isLighting = false;
-                mesh.material.emissiveIntensity = 1;
-              }
-            }
-          }
-        }
+        this.lightBuild(build, newPos, newTime);
       }
       if (this.isIntro) {
         if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
@@ -871,6 +851,7 @@ export class LyricsApp {
         );
       }
     }
+
     // Warp effect
 
     this.camera.position.set(newPos.x, newPos.y, newPos.z);
@@ -905,6 +886,7 @@ export class LyricsApp {
 
       particleSystem.loop(newTime / 1000);
     }
+
     // textElement.textMeshBg.position.add(newDirection);
     if (this.isIntro) {
       this.moveStars(newTime / 1000);
@@ -930,13 +912,76 @@ export class LyricsApp {
     // if (this.debug) {
     //   console.log(this.scene.children.filter((e) => e.name === "Build").length);
     // }
-
+    // Test benchmark
+    // if (Date.now() - bef >= 10) {
+    //   console.log(Date.now() - bef);
+    // }
     // Render
     this.composer.render();
-    this.stats.end();
+    if (this.debug) {
+      this.stats.end();
+    }
+  }
+
+  lightBuild(build, newPos, newTime) {
+    if (build.mesh) {
+      // Avoid errors when skipping
+      if (
+        build.isLight &&
+        build.position.z - newPos.z <
+          MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
+            Math.pow(
+              build.distance,
+              1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
+            )
+      ) {
+        // console.log(build.mesh);
+        for (const mesh of [
+          build.mesh.children[0].children[1],
+          // build.mesh.children[0].children[0],
+        ]) {
+          // const mesh = build.mesh.children[0].children[0];
+          mesh.material = Build.LIGHT_MATERIAL.clone();
+          mesh.material.emissiveIntensity = 0;
+          build.isLight = false;
+          build.isLighting = true;
+        }
+      }
+      if (build.isLighting) {
+        // const mesh = build.mesh.children[0].children[0];
+        for (const mesh of [build.mesh.children[0].children[1]]) {
+          mesh.material.emissiveIntensity +=
+            (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
+          if (mesh.material.emissiveIntensity > 1) {
+            build.isLighting = false;
+            mesh.material.emissiveIntensity = 1;
+          }
+        }
+      }
+      if (
+        !build.light ||
+        build.position.z - this.camera.position.z >
+          MAGIC_NUMBERS.BUILD_LIGHT.START_AT
+      ) {
+        const distance = build.position.z - this.camera.position.z;
+        const colorNbr = Math.min(
+          distance / MAGIC_NUMBERS.BUILD_SHADER.DISTANCE_TO_WHITE,
+          1,
+        );
+        build.mesh.children[0].children[1].material.color =
+          new THREE.Color().setRGB(colorNbr, colorNbr, colorNbr);
+        build.mesh.children[0].children[1].material.emissiveIntensity =
+          colorNbr / MAGIC_NUMBERS.BUILD_SHADER.EMISSIVE;
+      }
+    }
   }
 
   restart() {
+    for (const lyric of this.pathGen.lyrics) {
+      this.scene.remove(lyric.textMesh);
+    }
+    this.buildManager.clearBuilds(this.scene);
+    document.getElementById("controls").style.display = "none";
     this.isIntro = true;
     this.end = false;
     this.isFirstFrame = true;
@@ -954,6 +999,8 @@ export class LyricsApp {
     this.canPlay = false;
     this.progress.setProgress(0);
     this.progress.locked = true;
+    this.songSelector.isRemoved = true;
+    this.songSelector = new SongSelector(() => this.resume());
   }
 
   initProgress() {
@@ -987,10 +1034,17 @@ export class LyricsApp {
         this.audio.pause();
         this.stop = true;
       },
+      () => {
+        if (this.canPlay) {
+          this.resume();
+          this.restart();
+        }
+      },
     );
   }
   resume() {
     if (!this.start) {
+      document.getElementById("controls").style.display = "flex";
       this.start = true;
     }
     if (this.canPlay) {

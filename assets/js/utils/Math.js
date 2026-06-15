@@ -7,7 +7,7 @@ export function radToDeg(rad) {
 }
 
 export function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(Srand.random() * (max - min + 1)) + min;
 }
 
 export function coordToGrid(x, z, gridSize) {

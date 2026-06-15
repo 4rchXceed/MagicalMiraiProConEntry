@@ -7,8 +7,13 @@ const audio = new Audio("audio-tests/GETCHA.mp3");
 // document.addEventListener("click", () => {
 //   if (started) return;
 //   started = true;
+const searchParams = new URL(location.href).searchParams;
 audio.onloadedmetadata = () => {
-  const app = new LyricsApp(audio, true);
+  const app = new LyricsApp(
+    audio,
+    searchParams.has("debug") ? searchParams.get("debug") === "true" : false,
+    searchParams.has("seed") ? parseInt(searchParams.get("seed")) : 39,
+  );
 };
 // });
 

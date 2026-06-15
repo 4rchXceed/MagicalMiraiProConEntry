@@ -182,7 +182,7 @@ export const MAGIC_NUMBERS = {
   BUILD_LIGHT: {
     TEXTURE_SIZE: 20,
     INTENSITY: 0,
-    COLOR: 0xffffff,
+    COLOR: 0xf7e9ca,
     START_AT: 20,
     TIME_TO_FULL: 2,
     MAX_DISTANCE: 4, // In grid points
@@ -202,6 +202,24 @@ export const MAGIC_NUMBERS = {
       NBR_PARTICLES: 50,
       EXPLOSION_LIFETIME: 1,
       PARTICLE_RADIUS: 0.1,
+      AUTO_INTERVAL: 0.75,
+      AUTO_Z_OFFSET: 40,
     },
+  },
+  SONG_SELECT: {
+    ARROW: {
+      MOVE_SPEED: 20,
+      MOVE_BOUNDS: 5,
+    },
+    START_ANIM: {
+      MOVE_SPEED: 200,
+      TIME: 1,
+      SCALE_SPEED: 10,
+      END_TIME: 2,
+    },
+  },
+  BUILD_SHADER: {
+    DISTANCE_TO_WHITE: 1000,
+    EMISSIVE: 50,
   },
 };

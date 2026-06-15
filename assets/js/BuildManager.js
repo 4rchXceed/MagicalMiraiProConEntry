@@ -41,7 +41,7 @@ export class BuildManager {
   //     for (let j = 0; j < Math.ceil(areaSize.z / this.gridSize.Z); j++) {
   //       const { x: gridX, z: gridZ } = this.gridToCoord(i, j, this.gridSize);
 
-  //       if (Math.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
+  //       if (Srand.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
   //         // Chance to remove build
   //         this.placeBuildOnGrid(
   //           gridX + MAGIC_NUMBERS.BUILDS_X_OFFSET,
@@ -59,7 +59,7 @@ export class BuildManager {
   //   for (let j = 0; j < Math.ceil(areaSize.z / this.gridSize.Z); j++) {
   //     for (let i = 0; i < Math.ceil(areaSize.x / this.gridSize.X); i++) {
   //       const { x: gridX, z: gridZ } = this.gridToCoord(i, j, this.gridSize);
-  //       if (Math.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
+  //       if (Srand.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
   //         // Chance to remove build
   //         const build = new Build(Build.getRandomBuildId(), {
   //           x: gridX + MAGIC_NUMBERS.BUILDS_X_OFFSET,
@@ -113,7 +113,7 @@ export class BuildManager {
     for (const build of builds) {
       Build.removeRecursive(build);
     }
-    this.builds.map((b) => (b.mesh = null));
+    this.builds.map((b) => b.remove());
   }
 
   removeBuildsBeforeZ(scene, z) {

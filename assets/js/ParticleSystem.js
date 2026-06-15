@@ -36,17 +36,17 @@ export class ParticleSystem {
     if (this.count >= this.total) return;
     const particle = new THREE.Mesh(this.mesh, this.material);
     const randomPositionOffset = new THREE.Vector3(
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE.X,
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE.Y,
-      (Math.random() - 0.5) * this.config.OFFSET_SIZE.Z,
+      (Srand.random() - 0.5) * this.config.OFFSET_SIZE.X,
+      (Srand.random() - 0.5) * this.config.OFFSET_SIZE.Y,
+      (Srand.random() - 0.5) * this.config.OFFSET_SIZE.Z,
     );
     position.add(randomPositionOffset);
     particle.position.copy(position);
     particle.scale.set(this.config.SIZE, this.config.SIZE, this.config.SIZE);
     const randomTo = new THREE.Vector3(
-      (Math.random() - 0.5) * this.config.RANDOM_TURBULENCE,
-      (Math.random() - 0.5) * this.config.RANDOM_TURBULENCE,
-      (Math.random() - 0.5) * this.config.RANDOM_TURBULENCE,
+      (Srand.random() - 0.5) * this.config.RANDOM_TURBULENCE,
+      (Srand.random() - 0.5) * this.config.RANDOM_TURBULENCE,
+      (Srand.random() - 0.5) * this.config.RANDOM_TURBULENCE,
     );
 
     this.scene.add(particle);

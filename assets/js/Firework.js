@@ -17,9 +17,14 @@ class Firework {
   }
 
   createParticle(pos) {
+    const color = new THREE.Color().setRGB(
+      Math.random(),
+      Math.random(),
+      Math.random(),
+    ); // Do not use sRand, since it's a user-def. action
     const material = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.COLOR,
-      emissive: MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.COLOR,
+      color: color,
+      emissive: color,
       emissiveIntensity: MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.INTENSITY,
     });
     const geometry = new THREE.SphereGeometry(

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="100mm"
+   height="160mm"
+   viewBox="0 0 100 160"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   sodipodi:docname="source.svg"
+   inkscape:export-filename="phone.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1"
+     inkscape:cx="-90"
+     inkscape:cy="205.5"
+     inkscape:window-width="1890"
+     inkscape:window-height="996"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <rect
+       x="58"
+       y="298"
+       width="259"
+       height="59"
+       id="rect7" />
+    <rect
+       x="177.59602"
+       y="572.25391"
+       width="501.61738"
+       height="171.60273"
+       id="rect5" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#86cecb;stroke:#000000;stroke-width:2.65991;stroke-dasharray:none;stroke-opacity:1;fill-opacity:1"
+       id="rect1"
+       width="81.512764"
+       height="144.57732"
+       x="9.2719383"
+       y="5.1560998"
+       ry="11.629044" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:2.0347;stroke-dasharray:none;stroke-opacity:1"
+       id="rect2"
+       width="27.954533"
+       height="4.4496546"
+       x="31.698956"
+       y="9.7394047"
+       ry="2.2248273" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1.14133;stroke-dasharray:none;stroke-opacity:1"
+       id="rect2-3"
+       width="7.3251595"
+       height="5.3430209"
+       x="61.884712"
+       y="9.3498631"
+       ry="2.6715105" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:2.94724;stroke-dasharray:none;stroke-opacity:1"
+       id="rect3"
+       width="0.30918548"
+       height="20.421474"
+       x="91.271027"
+       y="22.06695"
+       ry="0.85089475" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2.61325;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4"
+       width="41.840893"
+       height="40.931309"
+       x="28.402456"
+       y="32.736652"
+       ry="0.32158673" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.61325;stroke-dasharray:none;stroke-opacity:1"
+       id="rect6"
+       width="68.819565"
+       height="2.5726938"
+       x="15.498856"
+       y="130.11932"
+       ry="1.2863469"
+       rx="1.1523516" />
+    <circle
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.61325;stroke-dasharray:none;stroke-opacity:1"
+       id="path6"
+       cx="16.551991"
+       cy="131.43944"
+       r="2.8803515" />
+    <rect
+       style="fill:#86cecb;fill-opacity:1;stroke-width:4.99999"
+       id="player-song-title-elem"
+       width="69.320999"
+       height="5.2916665"
+       x="11.1125"
+       y="78.316666"
+       ry="2.6458333"
+       inkscape:label="player-song-title-elem" />
+    <rect
+       style="fill:#86cecb;fill-opacity:1;stroke-width:4.99999"
+       id="player-song-artist-elem"
+       width="31.220833"
+       height="3.96875"
+       x="10.847918"
+       y="106.89166"
+       ry="1.984375"
+       inkscape:label="player-song-artist-elem" />
+    <path
+       fill="currentColor"
+       d="m 54.217746,40.64035 -4.936809,14.700721 c -0.663026,-0.749865 -1.512291,-1.360678 -2.529499,-1.702278 -3.079486,-1.034156 -6.41135,0.622469 -7.445508,3.701961 -1.034155,3.079486 0.622469,6.411351 3.701955,7.445507 3.079488,1.034156 6.411351,-0.62247 7.445507,-3.701956 l 4.679441,-13.934336 5.573737,1.871777 1.871775,-5.573732 z"
+       id="note-for-anim"
+       style="stroke-width:1.46991"
+       inkscape:label="note-for-anim" />
+  </g>
+</svg>

@@ -154,7 +154,9 @@ export class PathGen {
       this.lastTimePoint += deltaTime;
     } else {
       this.currentPoint += pointsToAdd;
-      this.lastTimePoint = 0;
+      this.lastTimePoint = Math.abs(
+        deltaTime + this.lastTimePoint - pointsToAdd / this.speed,
+      );
     }
 
     const pathPointIndex = this.currentPoint;
@@ -211,11 +213,11 @@ export class PathGen {
                 ) {
                   take++;
                   lyric.offset3d = new THREE.Vector3(
-                    Math.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.X * 2 -
+                    Srand.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.X * 2 -
                       MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.X,
-                    Math.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Y * 2 -
+                    Srand.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Y * 2 -
                       MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Y,
-                    Math.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Z * 2 -
+                    Srand.random() * MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Z * 2 -
                       MAGIC_NUMBERS.LYRICS.RANDOM_OFFSET.Z,
                   );
                 }

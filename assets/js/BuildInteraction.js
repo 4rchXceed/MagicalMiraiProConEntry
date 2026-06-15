@@ -1,5 +1,5 @@
 import { Raycaster, Vector3 } from "three";
-import { lerp } from "./utils/Math.js";
+import { lerp, randInt } from "./utils/Math.js";
 import { MAGIC_NUMBERS } from "./MagicNumbers.js";
 import { FireworkManager } from "./Firework.js";
 
@@ -24,6 +24,8 @@ export class BuildInteraction {
 
     // Firework system
     this.fireworkManager = new FireworkManager(scene);
+
+    this.lastAutoFirework = Date.now() / 1000;
   }
 
   mouseMove(event) {
@@ -99,6 +101,31 @@ export class BuildInteraction {
             pos.x,
             pos.y + MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
             pos.z,
+          ),
+        );
+      }
+    }
+    if (
+      Date.now() / 1000 - this.lastAutoFirework >
+      MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.AUTO_INTERVAL
+    ) {
+      this.lastAutoFirework = Date.now() / 1000;
+      const builds = this.buildManager.builds.filter(
+        (b) =>
+          b.mesh &&
+          b.light &&
+          b.position.z >
+            this.camera.position.z +
+              MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.AUTO_Z_OFFSET,
+      );
+      const build = builds[randInt(0, builds.length)];
+      if (build) {
+        this.fireworkManager.launchFirework(
+          new Vector3(
+            build.position.x,
+            build.position.y +
+              MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
+            build.position.z,
           ),
         );
       }
