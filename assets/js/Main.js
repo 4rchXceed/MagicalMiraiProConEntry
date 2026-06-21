@@ -1,26 +1,24 @@
 import { LyricsApp } from "./App.js";
 
-let started = false;
-
+// Creates the audio
 const audio = new Audio("audio-tests/GETCHA.mp3");
-// audio.currentTime = 28.731; // Start at the first lyrics
-// document.addEventListener("click", () => {
-//   if (started) return;
-//   started = true;
+
+// Loads the GET params
 const searchParams = new URL(location.href).searchParams;
 
+// Loads the language settings
 if (searchParams.has("lang")) {
   document.documentElement.lang =
     searchParams.get("lang") === "en" ? "en" : "jp";
 }
 
 audio.onloadedmetadata = () => {
-  const app = new LyricsApp(
+  // Creates the app
+  new LyricsApp(
     audio,
+    // Debug?
     searchParams.has("debug") ? searchParams.get("debug") === "true" : false,
+    // Random seed
     searchParams.has("seed") ? parseInt(searchParams.get("seed")) : 39,
   );
 };
-// });
-
-// app.enableDebug();

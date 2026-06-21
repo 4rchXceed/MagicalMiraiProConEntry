@@ -1,127 +1,109 @@
+import { Scene } from "three";
 import { Build } from "./Build.js";
-import { MAGIC_NUMBERS } from "./MagicNumbers.js";
-import { randInt } from "./utils/Math.js";
 
+/**
+ * Manages the Builds classes
+ * Handles: creating "virtual" builds, placing them, deleting all of them, etc.
+ */
 export class BuildManager {
+  /**
+   * Creates a BuildManager
+   */
   constructor() {
+    // Stores the builds that are already placed
     this.usedGrids = [];
-    this.gridSize = MAGIC_NUMBERS.GRID_SIZE;
+    // Stores the Build objects
     this.builds = [];
-    this.zOffset = 0;
   }
 
+  /**
+   * "Hashes" the grid position (used for this.usedGrids)
+   * @param {number} gridX
+   * @param {number} gridZ
+   * @returns the "hash"
+   */
   gridToHash(gridX, gridZ) {
     return `${gridX}-${gridZ}`;
   }
 
+  /**
+   * Places a build in the collection (without creating it in three.js)
+   * @param {number} gridX pos x on the grid
+   * @param {number} gridZ pos z on the grid
+   * @param {boolean} isLight is this build lightable?
+   * @param {number} distance distance (in grid) to the path point (use only if isLight === true)
+   * @returns {boolean} is the build created?
+   */
   placeVirtualBuild(gridX, gridZ, isLight, distance) {
+    // Gets a random model
     const buildId = Build.getRandomBuildId();
 
-    if (!buildId) return false; // Skip if no buildId is available
+    // Skip if no buildId is available
+    if (!buildId) return false;
 
+    // Hashes the build + checks if the grid place is unused
     const gridHash = this.gridToHash(Math.round(gridX), Math.round(gridZ));
     if (this.usedGrids.includes(gridHash)) return false; // Skip if grid is already used
 
+    // Creates the build
     const build = new Build(
       buildId,
       { x: gridX, y: 0, z: gridZ },
       isLight,
       distance,
     );
-    // build.place(scene);
+
+    // Add it to the usedGrid + builds collection
     this.usedGrids.push(gridHash);
     this.builds.push(build);
+
     return true;
   }
 
-  // fillBuilds(areaSize, scene, zOffset = 0) {
-  //   this.zOffset = zOffset;
-
-  //   for (let i = 0; i < Math.ceil(areaSize.x / this.gridSize.X); i++) {
-  //     for (let j = 0; j < Math.ceil(areaSize.z / this.gridSize.Z); j++) {
-  //       const { x: gridX, z: gridZ } = this.gridToCoord(i, j, this.gridSize);
-
-  //       if (Srand.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
-  //         // Chance to remove build
-  //         this.placeBuildOnGrid(
-  //           gridX + MAGIC_NUMBERS.BUILDS_X_OFFSET,
-  //           gridZ + MAGIC_NUMBERS.BUILDS_Z_OFFSET + this.zOffset,
-  //           scene,
-  //         );
-  //       }
-  //     }
-  //   }
-  // }
-
-  // fillVirtualBuilds(areaSize) {
-  //   // Fill builds without placing them in the scene, for pathfinding purposes
-  //   this.refillPoints = [];
-  //   for (let j = 0; j < Math.ceil(areaSize.z / this.gridSize.Z); j++) {
-  //     for (let i = 0; i < Math.ceil(areaSize.x / this.gridSize.X); i++) {
-  //       const { x: gridX, z: gridZ } = this.gridToCoord(i, j, this.gridSize);
-  //       if (Srand.random() > MAGIC_NUMBERS.CHANCE_TO_REMOVE_BUILD) {
-  //         // Chance to remove build
-  //         const build = new Build(Build.getRandomBuildId(), {
-  //           x: gridX + MAGIC_NUMBERS.BUILDS_X_OFFSET,
-  //           y: 0,
-  //           z: gridZ + MAGIC_NUMBERS.BUILDS_Z_OFFSET,
-  //         });
-  //         this.usedGrids.push(
-  //           this.gridToHash(build.position.x, build.position.z),
-  //         );
-  //         this.builds.push(build);
-  //       }
-  //     }
-  //     let gridZ =
-  //       j * this.gridSize.Z + MAGIC_NUMBERS.BUILDS_Z_OFFSET + this.zOffset;
-  //     if (j % MAGIC_NUMBERS.BUILD_BATCH_NUMBER === 0) {
-  //       // Add point to refill builds
-  //       this.refillPoints.push(gridZ);
-  //     }
-  //   }
-  //   return this.refillPoints;
-  // }
-
+  /**
+   * Instantiates all the builds that are between minZ (excl.) and toZ (incl.) build in Three.js (aka. make them viewable / creating them)
+   * @param {Scene} scene the Three.js scene
+   * @param {number} toZ max z position (included)
+   * @param {number} minZ min z position (excluded)
+   */
   showVirtualBuilds(scene, toZ, minZ) {
+    // Filters the builds by toZ and minZ
     const virtualBuilds = this.builds.filter(
       (build) => build.position.z <= toZ && build.position.z > minZ,
     );
-    // console.log(virtualBuilds);
     for (const build of virtualBuilds) {
+      // Place it
       build.place(scene);
-
-      build.id = Build.getRandomBuildId(); // Assign a random id to make it a "real" build
     }
   }
 
-  // removeFromMesh(scene, mesh) {
-  //   this.builds.find((build) => build.mesh === mesh)?.remove(scene);
-  //   this.builds = this.builds.filter((build) => build.mesh !== mesh);
-  // }
-
-  removeBuild(build, scene) {
-    // const gridX = build.position.x;
-    // const gridZ = build.position.z;
-    // const gridHash = this.gridToHash(gridX, gridZ);
-    build.remove();
-    // this.usedGrids = this.usedGrids.filter((hash) => hash !== gridHash);
-    // this.builds = this.builds.filter((b) => b !== build);
-  }
-
+  /**
+   * Removes all builds (FROM THE SCENE)
+   * @param {Scene} scene the Thrree.js scene
+   */
   clearBuilds(scene) {
+    // First: remove all build objects in three.js, so if a build class got "lost" (there was a problem like this)
     const builds = scene.children.filter((e) => e.name === "Build");
     for (const build of builds) {
       Build.removeRecursive(build);
     }
+    // Handle the build's removal
     this.builds.map((b) => b.remove());
   }
 
-  removeBuildsBeforeZ(scene, z) {
+  /**
+   * Removes from Three.js all the builds that are behind z
+   * @param {number} z the min z for builds not to be removed
+   */
+  removeBuildsBeforeZ(z) {
+    // Creates the list
     const buildsToRemove = this.builds.filter((build) => {
       return build.position.z < z;
     });
+
+    // Removes the builds
     for (const build of buildsToRemove) {
-      this.removeBuild(build, scene);
+      build.remove();
     }
   }
 }

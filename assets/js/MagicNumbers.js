@@ -196,6 +196,7 @@ export const MAGIC_NUMBERS = {
       COLOR: 0x86cecb,
       INTENSITY: 1,
       NBR_PARTICLES: 50,
+      VELOCITY: 0.05,
       EXPLOSION_LIFETIME: 1,
       PARTICLE_RADIUS: 0.1,
       AUTO_INTERVAL: 0.75,

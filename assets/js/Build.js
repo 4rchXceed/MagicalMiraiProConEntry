@@ -38,8 +38,6 @@ export class Build {
     this.position = position;
     // The Three.js mesh
     this.mesh = null;
-    // The build's model ID
-    this.id = null;
     // lightable ?
     this.isLight = isLight;
     // Currently lighted?

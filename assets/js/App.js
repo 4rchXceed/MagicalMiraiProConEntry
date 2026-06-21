@@ -438,7 +438,7 @@ export class LyricsApp {
     // Add new ones
     this.buildManager.showVirtualBuilds(this.scene, nextRefillZ, lastRefillZ);
     // Removes old ones
-    this.buildManager.removeBuildsBeforeZ(this.scene, lastRefillZ);
+    this.buildManager.removeBuildsBeforeZ(lastRefillZ);
   }
 
   /**

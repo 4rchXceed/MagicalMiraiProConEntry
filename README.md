@@ -134,3 +134,24 @@ Handles:
 - Hover
 - Click
 - Auto-launched fireworks
+
+#### BuildManager
+Location: BuildManager.js
+Manages the Builds classes
+Handles: creating "virtual" builds, placing them, deleting all of them, etc.
+
+#### Controls
+Location: Controls.js
+Handles the controls (play/pause and exit)
+
+#### Firework
+Location: Firework.js
+Represent a firework, can create particles and be updated
+
+#### FireworkManager
+Location: Firework.js
+The class that manages all the fireworks (handles updates and launch)
+
+#### Main.js
+Class: None
+Entrypoint for the app
