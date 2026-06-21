@@ -147,6 +147,9 @@ export class LyricsPathGen {
 
     /** Ignores all lyrics */
     this.ignoreNextLyrics = false;
+
+    /** Buggy section fix */
+    this.buggySectionFixes = [...GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.FIX];
   }
 
   /**
@@ -245,27 +248,34 @@ export class LyricsPathGen {
         this.currentSmoothPoint + GLOBAL_VARIABLES.PATH_NEXT_POINT_DISTANCE
       ];
 
+    // If there has been a time change due to the progress bar
+    if (timeChanged) {
+      let current = this.firstC;
+      // Recalculate current
+      // While there's a lyric
+      while (current && current.startTime <= this.currentTime * 1000) {
+        current = current.next;
+      } // Delete all old lyrics
+      this.c = current;
+      console.log(this.c, this.currentTime);
+      // It's bad, but it's the best way I found to do it
+      setTimeout(() => {
+        this.ignoreNextLyrics = false;
+      }, 500);
+      this.buggySectionFixes = [
+        ...GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.FIX,
+      ];
+
+      for (let i = 0; i < this.lyrics.length; i++) {
+        this.app.scene.remove(this.lyrics[i].textMesh);
+        this.lyrics.splice(i, 1);
+        i--;
+      }
+    }
     // If we can update the lyrics
     if (!this.lyricsLocked) {
       // Check for new lyrics
       this.checkForNewLyrics(timeChanged);
-
-      // If there has been a time change due to the progress bar
-      if (timeChanged) {
-        let current = this.firstC;
-        // Recalculate current
-        // While there's a lyric
-        while (current && current.startTime <= this.currentTime * 1000) {
-          current = current.next;
-        } // Delete all old lyrics
-        this.c = current;
-        this.ignoreNextLyrics = false;
-        for (let i = 0; i < this.lyrics.length; i++) {
-          this.app.scene.remove(this.lyrics[i].textMesh);
-          this.lyrics.splice(i, 1);
-          i--;
-        }
-      }
 
       // Update the lyrics (and their animation)
       this.updateLyricAnimation(pointsToAdd, deltaTime);
@@ -491,6 +501,7 @@ export class LyricsPathGen {
    * @param {*} player the textalive player
    */
   textAliveTimeUpdate(position, player) {
+    if (this.ignoreNextLyrics) return;
     if (!this.c) {
       this.firstC = player.video.firstWord;
     }
@@ -500,11 +511,42 @@ export class LyricsPathGen {
     // While there's a lyric
     while (current && current.startTime <= position) {
       // If we can add it
-      if (!this.ignoreNextLyrics) {
+      // "Fix" for this:
+      // The grand prize song "こたえて" (imie) from this year's music contest has the third paragraph of its lyrics as a chorus sung during the second paragraph. Since the TextAlive App API cannot properly represent such overlapping choruses, each character in the chorus range is assigned timing information with a length of 1 millisecond.
+
+      // For the correct timing information of characters in the chorus range, you can download a commented JSON file (.jsonc) here. Please use it as needed for your programming.
+      // https://developer.textalive.jp/events/magicalmirai2026/6W2N_chorus_timings.jsonc
+
+      // Remove the wrong timing texts
+      if (
+        current.startTime <
+          GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.BUGGY_SECTION_START ||
+        current.startTime >
+          GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.BUGGY_SECTION_END ||
+        player.data.song.name !==
+          GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.SONG_NAME
+      ) {
         this.lyricsToBeAdded.push(current.text);
+      } else {
+        console.log("FIX: REMOVED", current.text);
       }
 
       current = current.next;
+    }
+
+    // Add the missing texts
+    if (
+      player.data.song.name ===
+      GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.SONG_NAME
+    ) {
+      for (let i = 0; i < this.buggySectionFixes.length; i++) {
+        if (this.buggySectionFixes[i][0] < position) {
+          console.log("FIX: ADDED", this.buggySectionFixes[i][1]);
+          this.lyricsToBeAdded.push(this.buggySectionFixes[i][1]);
+          this.buggySectionFixes.splice(i, 1);
+          i--;
+        }
+      }
     }
 
     if (!current) {

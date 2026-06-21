@@ -17,6 +17,9 @@ This is my entry for the magical mirai programming contest
 
 I made documentation for both usage and the code
 
+## Important note
+### Since my local version contains an API key (for textalive), you just need to name `Env.js.sample` to `Env.js`, and you can (if you want) enter your own API key inside of it. !! This step is required, else the app won't run !!
+
 ## Usage
 
 ### Song selector
@@ -198,13 +201,14 @@ Handles:
 
 #### SongSelector
 Location: SongSelector.js
- The song selector
- Uses SVGs and modifies them. I know this is not the best way to do it, but like that I can create the base svgs on Inkscape, it's way easier
- Uses three buttons to go to the next song, play or go to the last song
- Also shows the song title/artist in an svg. Handles translations.
+The song selector
+Uses SVGs and modifies them. I know this is not the best way to do it, but like that I can create the base svgs on Inkscape, it's way easier
+Uses three buttons to go to the next song, play or go to the last song
+Also shows the song title/artist in an svg. Handles translations.
 
-## Known issues
-(Due to Textalive's internal API): You need to focus the window when the music starts playing.
+#### Globals.js
+Classes: None (`export const GLOBAL_VARIABLES`)
+This file stores every "Magic number", parameters so they are not everywhere in the code
 
 ## Credits:
 [CREDITS.md](./CREDITS.md)

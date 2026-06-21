@@ -152,7 +152,8 @@ export class LyricsApp {
       mediaElement: document.querySelector("#hidden"),
     });
     this.textAlivePlayer.addListener({
-      onVideoReady: (v) => {
+      // By using this, instead of onVideoReady, we are 100% sure that everything is loaded
+      onTimerReady: (timer) => {
         if (this.waitingVideoLoad) {
           // Stop instantly, we don't want to play during the intro
           if (this.textAlivePlayer.video) {
