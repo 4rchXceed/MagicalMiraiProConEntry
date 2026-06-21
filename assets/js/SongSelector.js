@@ -96,6 +96,33 @@ export class SongSelector {
 
     // Loop
     requestAnimationFrame((t) => this.animate(t));
+
+    // Little "easter egg"
+    document.getElementById("easteregg").addEventListener("input", (e) => {
+      if (e.target.value == 39) {
+        alert("Yes! You found the easter egg!!");
+        alert(
+          "Enter an URL supported by textalive (for ex. Youtube video). Textalive has lyrics only for Vocaloid music",
+        );
+        const url = prompt("Link? [https://textalive.jp to search]");
+        alert(
+          "If nothing pops up in ~10-20 seconds, the song might not be in textalive's api :( then reload the page...",
+        );
+        if (url) {
+          alert("Enjoy!");
+          // Hide all elements
+          document.querySelector("#song-player").classList.add("end");
+          document.querySelector("#song-select").classList.add("end");
+          document.querySelector("#texts").classList.add("end");
+          // Play (with the callback)
+          this.playCallback({ URL: url, DATAS: {} });
+          this.playPhase = 2;
+          this.lastPlayPhaseTime = Date.now() / 1000;
+        } else {
+          alert("See you next time!");
+        }
+      }
+    });
   }
 
   /**
