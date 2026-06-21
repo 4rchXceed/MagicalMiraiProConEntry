@@ -8,6 +8,12 @@ const audio = new Audio("audio-tests/GETCHA.mp3");
 //   if (started) return;
 //   started = true;
 const searchParams = new URL(location.href).searchParams;
+
+if (searchParams.has("lang")) {
+  document.documentElement.lang =
+    searchParams.get("lang") === "en" ? "en" : "jp";
+}
+
 audio.onloadedmetadata = () => {
   const app = new LyricsApp(
     audio,

@@ -21,6 +21,16 @@ export class BuildInteraction {
     this.fireworks = [];
     this.element.addEventListener("mousemove", (e) => this.mouseMove(e));
     this.element.addEventListener("click", (e) => (this.click = true));
+    window.addEventListener(
+      "resize",
+      () => {
+        this.sizes = {
+          width: this.element.offsetWidth,
+          height: this.element.offsetHeight,
+        };
+      },
+      false,
+    );
 
     // Firework system
     this.fireworkManager = new FireworkManager(scene);

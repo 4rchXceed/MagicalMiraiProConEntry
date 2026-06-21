@@ -38,6 +38,9 @@ export class LyricsApp {
     this.zOffset = 0;
     this.currentTime = 0;
 
+    // Settings
+    this.settings = new SettingsPanel();
+
     // Classes
     this.buildManager = new BuildManager();
     this.cameraRotationEaseInOut = {
@@ -86,9 +89,6 @@ export class LyricsApp {
 
     // Init play/pause btns
     this.initControls();
-
-    // Settings
-    this.settings = new SettingsPanel();
 
     // Song selector
     this.songSelector = new SongSelector(() => this.resume());
@@ -142,6 +142,17 @@ export class LyricsApp {
 
     // Load models and generate elements
     this.generateElements();
+
+    window.addEventListener(
+      "resize",
+      () => {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+      },
+      false,
+    );
 
     Build.loadModels(() => this.loadedCallback(), this.loaders);
   }
@@ -403,7 +414,12 @@ export class LyricsApp {
 
   loopWrapper(delta, last) {
     this.currentTime += delta - last;
-    this.loop(this.currentTime);
+    try {
+      this.loop(this.currentTime);
+    } catch {
+      location.reload(); // Reload the page in case of unexpected error, so it's cleaner and doesn't crash with infinite loop or something (since it's probably already a fatal error)
+      return;
+    }
     requestAnimationFrame((d) => this.loopWrapper(d, delta));
   }
 
@@ -820,7 +836,9 @@ export class LyricsApp {
         this.restart();
       }
       // Render
-      this.stats.end();
+      if (this.stats) {
+        this.stats.end();
+      }
       this.composer.render();
       return;
     }

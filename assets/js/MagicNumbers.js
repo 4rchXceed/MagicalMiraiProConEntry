@@ -116,8 +116,8 @@ export const MAGIC_NUMBERS = {
     BEHIND_CAMERA_OFFSET: 0, // In Points
     SCALE_TIME: 3, // In "%" of the total display time (1/SCALE_TIME*100 -> %)
   },
-  REFILL_INTERVAL: 100, // In grid units
-  REFILL_INTERVAL_OFFSET: 50,
+  REFILL_INTERVAL: 200, // In grid units
+  REFILL_INTERVAL_OFFSET: 100,
   CLEANUP_OFFSET: 200 * 3, // This one's a bit technical: it controls how far ahead the cleanup should be done: the cleanup is a check that removes buildings that are in the path, due to the Bezier path generation
   CLEANUP_FORWARD_DISTANCE: 0.1,
   CLEANUP_RAYCAST_BEHIND: 0.1,
@@ -222,4 +222,92 @@ export const MAGIC_NUMBERS = {
     DISTANCE_TO_WHITE: 1000,
     EMISSIVE: 50,
   },
+  TRANSLATIONS: {
+    "song-selector.title": {
+      en: "Select a City",
+      jp: "都市を選択してください",
+    },
+    songs: {
+      1: {
+        en: {
+          artist: "imie",
+          name: "Answer Me",
+        },
+        jp: {
+          artist: "imie さん",
+          name: "『こたえて』",
+        },
+      },
+      2: {
+        en: {
+          artist: "Rulmry",
+          name: "After The Curtain",
+        },
+        jp: {
+          artist: "Rulmry さん",
+          name: "アフター・\nザ・カーテン",
+        },
+      },
+      3: {
+        en: {
+          artist: "Yamiagari",
+          name: "Shutter Chance",
+        },
+        jp: {
+          artist: "夜未アガリ さん",
+          name: "シャッターチャンス",
+        },
+      },
+      4: {
+        en: {
+          artist: "Natsuyama Yotsugi × Dopam!ne",
+          name: "The Last March on Earth",
+        },
+        jp: {
+          artist: "夏山よつぎ×ど～ぱみん さん",
+          name: "世界最後の音楽隊",
+        },
+      },
+      5: {
+        en: {
+          artist: "Tsuruzou",
+          name: "Toritsukulogy",
+        },
+        jp: {
+          artist: "鶴三 さん",
+          name: "トリツクロジー",
+        },
+      },
+      6: {
+        en: {
+          artist: "Twinfield",
+          name: "TAKEOVER",
+        },
+        jp: {
+          artist: "Twinfield さん",
+          name: "TAKEOVER",
+        },
+      },
+    }, // TODO
+    "settings.title": {
+      en: "Settings",
+      jp: "設定",
+    },
+    "settings.text_debug": {
+      en: "Debug mode",
+      jp: "デバッグ モード",
+    },
+    "settings.text_random_seed": {
+      en: "Random seed",
+      jp: "ランダムシード",
+    },
+    "settings.text_save": {
+      en: "Save",
+      jp: "保存",
+    },
+    "settings.credits": {
+      en: "Credits",
+      jp: "クレジット",
+    },
+  }, // en / jp
 };

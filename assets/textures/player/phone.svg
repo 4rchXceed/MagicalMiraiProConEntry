@@ -2,7 +2,7 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="85.111855mm"
+   width="50.111855mm"
    height="147.23721mm"
    viewBox="0 0 85.111854 147.23721"
    version="1.1"
@@ -72,17 +72,17 @@
     <rect
        style="fill:#86cecb;fill-opacity:1;stroke-width:4.99999"
        id="player-song-title-elem"
-       width="69.320999"
-       height="5.2916665"
-       x="11.1125"
+       width="0.00001"
+       height="0.00001"
+       x="8"
        y="78.316666"
        ry="2.6458333" />
     <rect
        style="fill:#86cecb;fill-opacity:1;stroke-width:4.99999"
        id="player-song-artist-elem"
-       width="31.220833"
-       height="3.96875"
-       x="10.847918"
+       width="0.00001"
+       height="0.00001"
+       x="16"
        y="106.89166"
        ry="1.984375" />
     <path

@@ -11,16 +11,12 @@ export class SongSelector {
       () => {
         this.elements = {
           // TODO: Load these from a JSON
-          1: SongSelector.getSongParams("1", "Answer Me", "imie"),
-          2: SongSelector.getSongParams("2", "After The Curtain", "Rulmry"),
-          3: SongSelector.getSongParams("3", "Shutter Chance", "Yamiagari"),
-          4: SongSelector.getSongParams(
-            "4",
-            "The Last March on Earth",
-            "Natsuyama Yotsugi × Dopam!ne",
-          ),
-          5: SongSelector.getSongParams("5", "Toritsukulogy", "Tsuruzou"),
-          6: SongSelector.getSongParams("6", "TAKEOVER", "Twinfield"),
+          1: SongSelector.getSongParams("1"),
+          2: SongSelector.getSongParams("2"),
+          3: SongSelector.getSongParams("3"),
+          4: SongSelector.getSongParams("4"),
+          5: SongSelector.getSongParams("5"),
+          6: SongSelector.getSongParams("6"),
         };
         this.select(1);
       },
@@ -29,7 +25,8 @@ export class SongSelector {
       document.querySelector("#song-player"),
       "./assets/textures/player/phone.svg",
       () => {
-        document.querySelector("#texts").innerHTML += `
+        document.querySelector("#texts").classList.remove("end");
+        document.querySelector("#texts").innerHTML = `
           <span id='player-song-title'></span>
           <span id='player-song-artist'></span>
         `;
@@ -67,7 +64,14 @@ export class SongSelector {
     requestAnimationFrame((t) => this.animate(t));
   }
 
-  static getSongParams(nbr, title, artist) {
+  static getSongParams(nbr) {
+    const song = MAGIC_NUMBERS.TRANSLATIONS.songs[parseInt(nbr)];
+    let artist = song.jp.artist;
+    let title = song.jp.name;
+    if (document.documentElement.lang === "en") {
+      artist = song.en.artist;
+      title = song.en.name;
+    }
     return {
       arrow: document.querySelector(`#song${nbr}-arrow`), // Inkscape IDs
       title,
@@ -157,9 +161,12 @@ export class SongSelector {
     });
 
     if (this.songTitleElement && this.songArtistElement) {
-      this.songTitleElement.textContent = this.elements[this.currentSong].title;
-      this.songArtistElement.textContent =
-        this.elements[this.currentSong].artist;
+      this.songTitleElement.innerHTML = this.elements[
+        this.currentSong
+      ].title.replace("\n", "<br/>");
+      this.songArtistElement.innerHTML = this.elements[
+        this.currentSong
+      ].artist.replace("\n", "<br/>");
     }
   }
 
@@ -219,7 +226,9 @@ export class SongSelector {
       }
     }
     this.lastTime = t;
-    requestAnimationFrame((t) => this.animate(t));
+    if (!this.isRemoved) {
+      requestAnimationFrame((t) => this.animate(t));
+    }
   }
 
   static loadSvg(container, path, callback, removeWidthHeight = false) {

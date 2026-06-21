@@ -56,7 +56,7 @@ body {
 
 #progress-container {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     z-index: 10;
     width: 100%;
@@ -105,6 +105,7 @@ body {
 
 #song-select {
     position: absolute;
+    z-index: 11;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -150vh);
@@ -158,18 +159,27 @@ body {
 #song-select-buttons {
     display: flex;
     justify-content: center;
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#song-select-buttons > button {
+    z-index: 20;
 }
 
 #player-song-artist {
     position: absolute;
     font-style: italic;
     color: gray;
-    font-size: 150%;
+    font-size: 100%;
+    text-wrap: wrap;
 }
 
 #player-song-title {
     position: absolute;
-    font-size: 250%;
+    font-size: 150%;
 }
 
 button,
@@ -191,12 +201,12 @@ button,
 
 button:hover,
 .btn:hover {
-    transform: scaleX(1.2) scaleY(1.1);
+    transform: scaleX(1.1) scaleY(1.1);
 }
 
 button:active,
 .btn:active {
-    transform: scaleX(0.9) scaleY(0.9);
+    transform: scaleX(0.95) scaleY(0.95);
 }
 
 #song-player {
@@ -222,6 +232,7 @@ button:active,
 
 svg {
     transform-origin: center; /* For the scale start anim */
+    max-height: 75vh;
 }
 
 #texts {
@@ -233,7 +244,7 @@ svg {
 #texts span {
     z-index: 17;
     text-align: center;
-    width: 300px;
+    width: max-content;
 }
 
 #controls {
@@ -256,8 +267,11 @@ svg {
     border-radius: 20px;
     background-color: white;
     padding: 10px;
-    top: -100%;
+    top: -200%;
     transition: 0.2s;
+    max-height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .hidden {
@@ -268,9 +282,20 @@ svg {
     top: 0;
 }
 
+#song-select-title {
+    transform: translateX(-50%);
+    position: absolute;
+    left: 50%;
+    width: max-content;
+}
+
+#credits-text {
+    width: min-content;
+}
+
 @keyframes start-anim {
     0% {
-        transform: translate(-50%, -150vh);
+        transform: translate(-50%, -250vh);
     }
 
     100% {
@@ -280,7 +305,7 @@ svg {
 
 @keyframes player-start-anim {
     0% {
-        transform: translateY(-100vh);
+        transform: translateY(-200vh);
     }
 
     100% {
@@ -293,7 +318,7 @@ svg {
     }
 
     100% {
-        transform: translate(-50%, -150vh);
+        transform: translate(-50%, -250vh);
     }
 }
 
@@ -303,7 +328,7 @@ svg {
     }
 
     100% {
-        transform: translateY(-100vh);
+        transform: translateY(-200vh);
     }
 }
 
@@ -316,5 +341,23 @@ svg {
     }
     100% {
         transform: translate(0, -50%);
+    }
+}
+
+@media screen and (max-height: 700px) {
+    #song-select {
+        top: 50%;
+        height: 100%;
+        width: 100%;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+
+    #player-song-title {
+        font-size: 100%;
+    }
+
+    #player-song-artist {
+        font-size: 75%;
     }
 }

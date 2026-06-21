@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="jp">
     <head>
         <meta charset="utf-8" />
         <title>LyriCity</title>
@@ -35,22 +35,108 @@
             </svg>
         </label>
         <div id="settings-panel">
-            <h2>Settings</h2>
+            <h2>
+                <span class="text" data-id="settings.title"
+                    >settings.title</span
+                >
+            </h2>
             <ul>
-                <li>Debug mode: <input id="debug-mode" type="checkbox" /></li>
+                <li>
+                    <span class="text" data-id="settings.text_debug"
+                        >settings.text_debug</span
+                    >:
+                    <input id="debug-mode" type="checkbox" />
+                </li>
                 <li>
                     Random seed:
                     <input id="random-seed" type="number" value="39" />
                 </li>
             </ul>
-            <button id="save-btn">Save</button>
-            <h2>Credits</h2>
-            TODO
+            <button id="save-btn">
+                <span class="text" data-id="settings.text_save"
+                    >settings.text_save</span
+                >
+            </button>
+            <h2>Language settings/言語設定</h2>
+            <button id="english-lang">English</button>
+            <button id="japanese-lang">日本語</button>
+            <h2>
+                <span class="text" data-id="settings.credits"
+                    >settings.credits</span
+                >
+                (English-only)
+            </h2>
+            <p id="credits-text">
+                <b>ALL ASSETS THAT I USED ARE MADE BY ME OR CC0 LICENSE</b>
+                <br />
+                <b>I USED ASSETS FROM:</b>
+                <br />
+                <a href="https://jettelly.com/blog/some-space-skyboxes-why-not"
+                    >https://jettelly.com/blog/some-space-skyboxes-why-not</a
+                >
+                (Huge thanks, I spent a lot of time researching for that
+                specific type of skybox) -> <b>SKYBOX</b>
+                <br />
+                <a href="https://opensvg.dev/icons"
+                    >https://opensvg.dev/icons</a
+                >
+                (Awesome icons) -> <b>ICONS</b>
+                <br />
+                <br />
+                Tools used for fixing bugs / searching:
+                <br />
+                - <b>StackOverflow</b>
+                <br />
+                - <b>Google</b>
+                <br />
+                - <b>RARELY</b>: LLMs
+                <br />
+                <br />
+                AI Usage <b>(!! on the code !!)</b>:
+                <br />
+                I used some AI at first, but then found that it wasn't that
+                useful.
+                <br />
+                The only AI I use sometimes now is
+                <b>GitHub Copilot Inline sugestion</b>
+                <br />
+                <br />
+                Dev env:
+                <br />
+                Editor: <b>Zed</b>
+                <br />
+                Operating System: <b>NixOS</b>, btw
+                <br />
+                Web browser: <b>Firefox</b>
+                <br />
+                TODOs/Notes: <b>Obsidian</b> (with livesync self-hosted)
+                <br />
+                <br />
+
+                Translations:
+                <br />
+                - Debug mode - デバッグ モード: <b>monokuro</b> (<a
+                    href="https://garakutaprod.wixsite.com/gray-zone"
+                    >https://garakutaprod.wixsite.com/gray-zone</a
+                >)
+                <br />
+                - Save - 保存: <b>Me</b>
+                <br />
+                - Settings - 設定: <b>Me</b>
+                <br />
+                - All songs - <b>the official contest page</b>
+                <br />
+                - Other - <b>DeepL</b> + <b>human verification</b>
+            </p>
         </div>
         <div id="texts"></div>
         <div id="song-player"></div>
         <div id="song-select">
-            <h2>Select a City</h2>
+            <h2 id="song-select-title">
+                <span class="text" data-id="song-selector.title"
+                    >song-selector.title</span
+                >
+            </h2>
             <div id="svg-container-box">
                 <div id="svg-container"></div>
             </div>
