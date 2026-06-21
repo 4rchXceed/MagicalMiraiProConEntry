@@ -9,7 +9,7 @@ import { GLOBAL_VARIABLES } from "./Globals.js";
 export class SongSelector {
   /**
    * Creates the SongSelector, loads the SVGs and register the events
-   * @param {*} playCallback the function that will be called when the "play" button is called. TODO: Pass the song as argument
+   * @param {*} playCallback the function that will be called when the "play" button is called. GLOBAL_VARIABLES.TEXTALIVE_DATAS[X] is passed as argument
    */
   constructor(playCallback = () => {}) {
     // Resets html that older SongSelector instances modified
@@ -120,6 +120,7 @@ export class SongSelector {
       title,
       artist,
       parts: document.querySelectorAll(`.song${nbr}-select`), // SVG Class
+      textaliveDatas: GLOBAL_VARIABLES.TEXTALIVE_DATAS[parseInt(nbr)],
     };
   }
 
@@ -222,6 +223,7 @@ export class SongSelector {
    * @param {number} n the song that we want to select (int between 1 (included) and 6 (included))
    */
   select(n) {
+    if (!this.elements) return;
     // Hide the old arrow
     this.elements[this.currentSong].arrow.style.opacity = "0";
     // Un-highlight the old selected song
@@ -321,7 +323,7 @@ export class SongSelector {
         document.querySelector("#song-select").classList.add("end");
         document.querySelector("#texts").classList.add("end");
         // Play (with the callback)
-        this.playCallback();
+        this.playCallback(this.elements[this.currentSong].textaliveDatas);
         this.playPhase++; // To avoid to run this another time
         this.lastPlayPhaseTime = Date.now() / 1000;
       }

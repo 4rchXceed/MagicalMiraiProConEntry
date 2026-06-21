@@ -180,6 +180,7 @@ It also creates a smooth path
 PathGen stands for PathGenerator
 points stands for the cameraPathPoints
 pathPoints stands for the smooth path points
+It also handles the TextAlive API
 
 #### Progress
 Location: Progress.js
@@ -201,6 +202,9 @@ Location: SongSelector.js
  Uses SVGs and modifies them. I know this is not the best way to do it, but like that I can create the base svgs on Inkscape, it's way easier
  Uses three buttons to go to the next song, play or go to the last song
  Also shows the song title/artist in an svg. Handles translations.
+
+## Known issues
+(Due to Textalive's internal API): You need to focus the window when the music starts playing.
 
 ## Credits:
 [CREDITS.md](./CREDITS.md)

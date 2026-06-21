@@ -1,3 +1,4 @@
+const { Player } = TextAliveApp;
 import Stats from "https://cdn.jsdelivr.net/npm/stats.js@0.17.0/+esm";
 import * as THREE from "three";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
@@ -8,7 +9,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { degToRad, lerp, randInt } from "./utils/Math.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLOBAL_VARIABLES } from "./Globals.js";
-import { PathGen, Point } from "./PathGen.js";
+import { LyricsPathGen, Point } from "./PathGen.js";
 import { ParticleSystem } from "./ParticleSystem.js";
 import { BuildManager } from "./BuildManager.js";
 import { Build } from "./Build.js";
@@ -30,15 +31,14 @@ export class LyricsApp {
    *The main app, manages (most) ThreeJS stuff.
    * Manages the overall state of the app, the changes between parts (song selector, intro, play, outro)
    * Is the "body" of the app
-   * @param {HTMLAudioElement} audio
-   * @param {boolean} debug
-   * @param {number} seed
+   * @param {boolean} debug debug mode?
+   * @param {number} seed the random seed
    */
-  constructor(audio, debug = false, seed = 39) {
+  constructor(debug = false, seed = 39) {
     if (isNaN(seed)) seed = 39;
     Srand.seed(seed);
-    /**Audio source*/
-    this.audio = audio;
+    // /**Audio source*/
+    // this.audio = audio;
     /**Data*/
     /**Debug mode*/
     this.debug = debug;
@@ -91,8 +91,11 @@ export class LyricsApp {
       document.body.appendChild(this.stats.dom);
     }
 
-    /**The audio length*/
-    this.songLength = this.audio.duration;
+    // Ok a little bit complex here: since (with textalive), we can't get the song that have the max length
+    // of the 6 proposed, I checked manually.
+    // I need to do this since when the buildings are placed, I don't know which song the user want
+    /**The max song length (in seconds) !! HARDCODED */
+    this.maxSongLength = 262; // This song's length: https://www.youtube.com/watch?v=RYv4-QCJk4s + 2 seconds
 
     /**Toggle if it's into (into = warp animation)*/
     this.isIntro = true;
@@ -125,7 +128,52 @@ export class LyricsApp {
     this.initControls();
 
     /**Song selector*/
-    this.songSelector = new SongSelector(() => this.resume());
+    this.songSelector = new SongSelector((v) => this.resume(v));
+
+    /** the Textalive app element */
+    this.textAliveApp = null;
+
+    /** Playback time (ms) */
+    this.textAlivePlaybackTime = 0;
+
+    // Init textalive
+    this.initTextalive();
+  }
+
+  initTextalive() {
+    /** If we are waiting for onVideoReady to be called */
+    this.waitingVideoLoad = false;
+
+    // Creates the textalive API
+    /** the textalive api class */
+    this.textAlivePlayer = new Player({
+      app: { token: window.TEXTALIVE_API_TOKEN },
+      // We don't want the media to be shown
+      mediaElement: document.querySelector("#hidden"),
+    });
+    this.textAlivePlayer.addListener({
+      onVideoReady: (v) => {
+        if (this.waitingVideoLoad) {
+          // Stop instantly, we don't want to play during the intro
+          if (this.textAlivePlayer.video) {
+            // this.textAlivePlayer.requestPause();
+          }
+          this.resume();
+          this.waitingVideoLoad = false;
+        }
+      },
+      // Set the app property
+      onAppReady: (app) => {
+        this.textAliveApp = app;
+      },
+      // On timing update, call pathGen.timeUpdate
+      onTimeUpdate: (position) => {
+        this.textAlivePlaybackTime = position / 1000;
+        if (this.pathGen) {
+          this.pathGen.textAliveTimeUpdate(position, this.textAlivePlayer);
+        }
+      },
+    });
   }
 
   /**
@@ -208,7 +256,7 @@ export class LyricsApp {
    */
   getNumberOfPointsNeeded() {
     return Math.ceil(
-      (this.songLength * GLOBAL_VARIABLES.POINTS_PER_SECOND) /
+      (this.maxSongLength * GLOBAL_VARIABLES.POINTS_PER_SECOND) /
         GLOBAL_VARIABLES.NUMBER_STEPS_PER_POINTS,
     );
   }
@@ -344,7 +392,7 @@ export class LyricsApp {
       GLOBAL_VARIABLES.FLOOR_SIZE.OFFSET_Z_END / 2;
 
     // Initialize the path handler class
-    this.pathGen = new PathGen(this.cameraPathPoints, this);
+    this.pathGen = new LyricsPathGen(this.cameraPathPoints, this);
 
     // Initialize the shooting star's particle system
     const material = new THREE.MeshStandardMaterial({
@@ -806,7 +854,8 @@ export class LyricsApp {
           // Now the resume can play the audio
           this.canPlay = true;
           // Play the audio
-          this.audio.play();
+          this.textAlivePlayer.requestMediaSeek(0); // Ensure it's at 0
+          this.textAlivePlayer.requestPlay();
           this.pathGen.currentTime = 0; // Reset the timing for the lyrics
           // "Unlock" the lyrics (used so lyrics don't spawn during the intro)
           this.pathGen.unlockLyrics();
@@ -818,7 +867,8 @@ export class LyricsApp {
         this.progress.locked = false;
         // Set the current song's progress
         this.progress.setProgress(
-          (this.audio.currentTime / this.audio.duration) * 100,
+          (this.textAlivePlaybackTime / this.textAlivePlayer.data.song.length) *
+            100,
         );
       }
     }
@@ -873,7 +923,11 @@ export class LyricsApp {
     }
 
     // If it's the end of the audio, start the end animation
-    if (this.audio.currentTime >= this.audio.duration) {
+    if (
+      this.textAlivePlayer &&
+      this.textAlivePlayer.data.song &&
+      this.textAlivePlaybackTime >= this.textAlivePlayer.data.song.length
+    ) {
       this.end = true;
       this.startZ = newPos.z;
     }
@@ -979,10 +1033,11 @@ export class LyricsApp {
     this.start = false;
 
     // Reset audio playback time
-    this.audio.currentTime = 0;
+    this.textAlivePlayer.requestPause();
+    this.textAlivePlayer.requestMediaSeek(0);
 
     // Recreate a new path manager, so we don't need to reset it manually
-    this.pathGen = new PathGen(this.cameraPathPoints, this);
+    this.pathGen = new LyricsPathGen(this.cameraPathPoints, this);
 
     // Reset the controls vars
     this.controls.playBtnPlayIcon.style.transform = "scale(1)";
@@ -994,9 +1049,12 @@ export class LyricsApp {
     this.progress.setProgress(0);
     this.progress.locked = true;
 
+    // And also recreate the textalive API class
+    this.initTextalive();
+
     // Reset the song selector, by creating a new one
     this.songSelector.isRemoved = true;
-    this.songSelector = new SongSelector(() => this.resume());
+    this.songSelector = new SongSelector((v) => this.resume(v));
   }
 
   /**
@@ -1014,9 +1072,16 @@ export class LyricsApp {
         // Here we use a little "hacky" thing, we set the deltaTime to a the difference needed to go to the progress we want, so we don't have to modify everything manually
         // It's not very good to do that, but it saves so much time
         const difference =
-          -this.pathGen.currentTime + progress * this.audio.duration;
+          -this.pathGen.currentTime +
+          progress * this.textAlivePlayer.data.song.length;
         this.changeNeeded = difference * 1000;
-        this.audio.currentTime = progress * this.audio.duration;
+        // Ignore all the lyrics until currentChar is set correctly (see PathGen.js -> update)
+        this.pathGen.ignoreNextLyrics = true;
+        // Change the playback time in textalive too
+        this.textAlivePlayer.requestMediaSeek(
+          progress * this.textAlivePlayer.data.song.length * 1000,
+        );
+
         if (this.stop) {
           this.controls.playBtnPlayIcon.style.transform = "scale(1)";
           this.controls.playBtnPauseIcon.style.transform = "scale(0)";
@@ -1039,7 +1104,7 @@ export class LyricsApp {
       () => this.resume(),
       // Pause function
       () => {
-        this.audio.pause();
+        this.textAlivePlayer.requestPause();
         this.stop = true;
       },
       // Reset/restart function
@@ -1055,7 +1120,15 @@ export class LyricsApp {
   /**
    * Resume the playback
    */
-  resume() {
+  resume(textaliveDatas = null) {
+    if (textaliveDatas) {
+      this.waitingVideoLoad = true;
+      this.textAlivePlayer.createFromSongUrl(
+        textaliveDatas.URL,
+        textaliveDatas.DATAS,
+      );
+      return;
+    }
     // If it's not yet started, show the controls and start it
     if (!this.start) {
       document.getElementById("controls").style.display = "flex";
@@ -1063,7 +1136,7 @@ export class LyricsApp {
     }
     // Play the audio ONLY when it's started + init is finished
     if (this.canPlay) {
-      this.audio.play();
+      this.textAlivePlayer.requestPlay();
     }
     this.stop = false;
   }

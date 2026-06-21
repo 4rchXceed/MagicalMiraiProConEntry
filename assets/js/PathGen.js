@@ -1,5 +1,4 @@
 import { LyricsApp } from "./App.js";
-import { LYRICS_TEMP } from "./LyricsTemp.js";
 import { GLOBAL_VARIABLES } from "./Globals.js";
 import * as THREE from "three";
 
@@ -85,8 +84,9 @@ export class Point {
  * PathGen stands for PathGenerator
  * points stands for the cameraPathPoints
  * pathPoints stands for the smooth path points
+ * It also handles the TextAlive API (but not the playback)
  */
-export class PathGen {
+export class LyricsPathGen {
   /**
    * Creates PathGen
    * @param {THREE.Vector3} cameraPathPoints the points where the camera path will go
@@ -109,11 +109,6 @@ export class PathGen {
     this.generatePath();
     /** The current time (time since path started) */
     this.currentTime = 0;
-    /** TODO: Migrate to Textalive */
-    this.textsToShow = LYRICS_TEMP.map((text) => [
-      text[0],
-      text[1],
-    ]); /** to avoid modifying LYRICS_TEMP directly */
 
     /** The index of the current smooth path point */
     this.currentSmoothPoint = 0;
@@ -140,6 +135,18 @@ export class PathGen {
 
     /** Adjustable speed */
     this.speed = GLOBAL_VARIABLES.POINTS_PER_SECOND;
+
+    /** All the lyrics that needs to be added (replaces the old textsToShow) */
+    this.lyricsToBeAdded = [];
+
+    /** The current textalive character, so we don't re-analyze all lyrics the next time */
+    this.c = null;
+
+    /** Stores the first textalive character */
+    this.firstC = null;
+
+    /** Ignores all lyrics */
+    this.ignoreNextLyrics = false;
   }
 
   /**
@@ -245,12 +252,14 @@ export class PathGen {
 
       // If there has been a time change due to the progress bar
       if (timeChanged) {
-        // TODO: Migrate to Textalive
-        this.textsToShow = LYRICS_TEMP.filter(
-          (text) => text[0] >= this.currentTime * 1000,
-        ).map((text) => [text[0], text[1]]);
-
-        // Delete all old lyrics
+        let current = this.firstC;
+        // Recalculate current
+        // While there's a lyric
+        while (current && current.startTime <= this.currentTime * 1000) {
+          current = current.next;
+        } // Delete all old lyrics
+        this.c = current;
+        this.ignoreNextLyrics = false;
         for (let i = 0; i < this.lyrics.length; i++) {
           this.app.scene.remove(this.lyrics[i].textMesh);
           this.lyrics.splice(i, 1);
@@ -405,55 +414,52 @@ export class PathGen {
    * @param {boolean} timeChanged if the progress bar has changed the playback time (so we don't create a lot of lyrics)
    */
   checkForNewLyrics(timeChanged) {
-    for (let i = 0; i < this.textsToShow.length; i++) {
-      // TODO: Migrate to Textalive
-      if (this.currentTime * 1000 > this.textsToShow[i][0]) {
-        // If we didn't click on the progress bar
-        if (!timeChanged) {
-          // Use the showLyrics method, but DO NOT block the flow execution (use .then)
-          this.app
-            .showLyrics(this.textsToShow[i][1], this.currentTime)
-            .then((lyric) => {
-              // i is the current point the lyric is at
-              lyric.i =
-                this.currentSmoothPoint + GLOBAL_VARIABLES.LYRICS.PATH_OFFSET;
-              // posOffset is the offset in addition to i
-              lyric.posOffset = -GLOBAL_VARIABLES.LYRICS.BEHIND_CAMERA_OFFSET;
-              // Try to place a lyric that is not too close to another one
-              const maxTakes = 10;
-              let take = 0;
-              // Try by "bruteforcing", not the best, but works pretty well
-              while (
-                take < maxTakes ||
-                // Check if there's a point too close
-                this.takenLyricsPositions.find(
-                  (pos) =>
-                    lyric.offset3d &&
-                    pos.distanceTo(lyric.offset3d) <
-                      GLOBAL_VARIABLES.MIN_DISTANCE_BETWEEN_LYRICS,
-                )
-              ) {
-                take++;
-                // Set a random offset
-                lyric.offset3d = new THREE.Vector3(
-                  Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.X * 2 -
-                    GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.X,
-                  Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Y * 2 -
-                    GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Y,
-                  Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Z * 2 -
-                    GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Z,
-                );
-              }
-              // Sets the lyric opacity
-              lyric.opacity = 1;
-              // Add the lyric to the collections
-              this.takenLyricsPositions.push(lyric.offset3d);
-              this.lyrics.push(lyric);
-            });
-        }
-        this.textsToShow.splice(i, 1);
-        i--;
+    for (let i = 0; i < this.lyricsToBeAdded.length; i++) {
+      // If we didn't click on the progress bar
+      if (!timeChanged) {
+        // Use the showLyrics method, but DO NOT block the flow execution (use .then)
+        this.app
+          .showLyrics(this.lyricsToBeAdded[i], this.currentTime)
+          .then((lyric) => {
+            // i is the current point the lyric is at
+            lyric.i =
+              this.currentSmoothPoint + GLOBAL_VARIABLES.LYRICS.PATH_OFFSET;
+            // posOffset is the offset in addition to i
+            lyric.posOffset = -GLOBAL_VARIABLES.LYRICS.BEHIND_CAMERA_OFFSET;
+            // Try to place a lyric that is not too close to another one
+            const maxTakes = 10;
+            let take = 0;
+            // Try by "bruteforcing", not the best, but works pretty well
+            while (
+              take < maxTakes ||
+              // Check if there's a point too close
+              this.takenLyricsPositions.find(
+                (pos) =>
+                  lyric.offset3d &&
+                  pos.distanceTo(lyric.offset3d) <
+                    GLOBAL_VARIABLES.MIN_DISTANCE_BETWEEN_LYRICS,
+              )
+            ) {
+              take++;
+              // Set a random offset
+              lyric.offset3d = new THREE.Vector3(
+                Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.X * 2 -
+                  GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.X,
+                Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Y * 2 -
+                  GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Y,
+                Srand.random() * GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Z * 2 -
+                  GLOBAL_VARIABLES.LYRICS.RANDOM_OFFSET.Z,
+              );
+            }
+            // Sets the lyric opacity
+            lyric.opacity = 1;
+            // Add the lyric to the collections
+            this.takenLyricsPositions.push(lyric.offset3d);
+            this.lyrics.push(lyric);
+          });
       }
+      this.lyricsToBeAdded.splice(i, 1);
+      i--;
     }
   }
 
@@ -477,5 +483,35 @@ export class PathGen {
         }
       }
     }
+  }
+
+  /**
+   * Adds lyrics to the lyricsToBeAdded list
+   * @param {number} position the current song's position (ms)
+   * @param {*} player the textalive player
+   */
+  textAliveTimeUpdate(position, player) {
+    if (!this.c) {
+      this.firstC = player.video.firstWord;
+    }
+    // Take the last lyric or from the beginning
+    let current = this.c || player.video.firstWord;
+
+    // While there's a lyric
+    while (current && current.startTime <= position) {
+      // If we can add it
+      if (!this.ignoreNextLyrics) {
+        this.lyricsToBeAdded.push(current.text);
+      }
+
+      current = current.next;
+    }
+
+    if (!current) {
+      this.ignoreNextLyrics = true;
+    }
+
+    // Set the last lyric
+    this.c = current;
   }
 }

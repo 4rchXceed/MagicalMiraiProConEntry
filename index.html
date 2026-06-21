@@ -271,6 +271,7 @@
                 <div id="cursor"></div>
             </div>
         </div>
+        <div id="hidden" style="display: none"></div>
         <script type="importmap">
             {
                 "imports": {
@@ -279,8 +280,10 @@
                 }
             }
         </script>
+        <script src="https://unpkg.com/axios@1.18.0/dist/axios.min.js"></script>
+        <script src="https://unpkg.com/textalive-app-api@0.4.0/dist/index.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/seeded-rand@4.0.0/dist/jsrand.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/pathfinding@0.4.18/visual/lib/pathfinding-browser.min.js"></script>
+        <script type="module" src="./Env.js"></script>
         <script type="module" src="./assets/js/Main.js"></script>
     </body>
 </html>
