@@ -7,7 +7,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { degToRad, lerp, randInt } from "./utils/Math.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { MAGIC_NUMBERS } from "./MagicNumbers.js";
+import { GLOBAL_VARIABLES } from "./Globals.js";
 import { PathGen, Point } from "./PathGen.js";
 import { ParticleSystem } from "./ParticleSystem.js";
 import { BuildManager } from "./BuildManager.js";
@@ -25,7 +25,7 @@ export class LyricsApp {
   /**
    * Something that isn't relevant, but still needed (for ex. to specify the width of the city's floor)
    */
-  AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
+  AREA_SIZE = GLOBAL_VARIABLES.AREA_SIZE;
   /**
    *The main app, manages (most) ThreeJS stuff.
    * Manages the overall state of the app, the changes between parts (song selector, intro, play, outro)
@@ -37,94 +37,94 @@ export class LyricsApp {
   constructor(audio, debug = false, seed = 39) {
     if (isNaN(seed)) seed = 39;
     Srand.seed(seed);
-    // Audio source
+    /**Audio source*/
     this.audio = audio;
-    // Data
-    // Debug mode
+    /**Data*/
+    /**Debug mode*/
     this.debug = debug;
 
-    // DELETED: usedGrids, modelsLoaded
-    // Contains all the part to create the shooting star
+    /**DELETED: usedGrids, modelsLoaded*/
+    /**Contains all the part to create the shooting star*/
     this.shootingStars = [];
-    // DELETED: cameraReferencePoint
-    // Used to create a delta instead of a time-since start
+    /**DELETED: cameraReferencePoint*/
+    /**Used to create a delta instead of a time-since start*/
     this.lastTime = 0;
-    // The first frame has an "oversized" delta, this is a small fix
+    /**The first frame has an "oversized" delta, this is a small fix*/
     this.isFirstFrame = true;
-    // DELETED: font, texts, zOffset
-    // Same as lastTime, but for a different usage
+    /**DELETED: font, texts, zOffset*/
+    /**Same as lastTime, but for a different usage*/
     this.currentTime = 0;
 
-    // Classes
+    /**Classes*/
     //
-    // Settings
+    /**Settings*/
     this.settings = new SettingsPanel();
 
-    // The build manager
+    /**The build manager*/
     this.buildManager = new BuildManager();
-    // DELETED: cameraRotationEaseInOut
-    // Pool for all particle systems
+    /**DELETED: cameraRotationEaseInOut*/
+    /**Pool for all particle systems*/
     this.particleSystems = [];
 
-    // Not yet initialized attributes
-    // All the loaders (textures, 3d models)
+    /**Not yet initialized attributes*/
+    /**All the loaders (textures, 3d models)*/
     this.loaders = null;
-    // DELETED: pathGrid
-    // DELETED: pathFinder
+    /**DELETED: pathGrid*/
+    /**DELETED: pathFinder*/
     this.pathGen = null;
 
-    // Three.js objects
-    // The Three.js scene
+    /**Three.js objects*/
+    /**The Three.js scene*/
     this.scene = null;
-    // The camera
+    /**The camera*/
     this.camera = null;
-    // The WebGL renderer
+    /**The WebGL renderer*/
     this.renderer = null;
-    // The city's floor
+    /**The city's floor*/
     this.floor = null;
-    // DELETED: cameraLight
+    /**DELETED: cameraLight*/
 
-    // Instantiates Stat.js if in debug mode
+    /**Instantiates Stat.js if in debug mode*/
     if (this.debug) {
       this.stats = new Stats();
       this.stats.showPanel(0);
       document.body.appendChild(this.stats.dom);
     }
 
-    // The audio length
+    /**The audio length*/
     this.songLength = this.audio.duration;
 
-    // Toggle if it's into (into = warp animation)
+    /**Toggle if it's into (into = warp animation)*/
     this.isIntro = true;
 
-    // Warp stars
+    /**Warp stars*/
     this.stars = null;
 
-    // The progress bar
+    /**The progress bar*/
     this.progress = null;
 
-    // Used for the progress bar
+    /**Used for the progress bar*/
     this.changeNeeded = null;
 
-    // Pause the app toggle
+    /**Pause the app toggle*/
     this.stop = false;
 
-    // Starts the app initiation
+    /**Starts the app initiation*/
     this.init();
 
-    // Toggle if the resume can play the audio or if it's during isIntro = true
+    /**Toggle if the resume can play the audio or if it's during isIntro = true*/
     this.canPlay = false;
-    // Is the app init finished?
+    /**Is the app init finished?*/
     this.initOk = false;
-    // Did we start the song play
+    /**Did we start the song play*/
     this.start = false;
-    // Did end the song play (finishes the preview)
+    /**Did end the song play (finishes the preview)*/
     this.end = false;
 
-    // Init play/pause btns
+    /**Init play/pause btns*/
     this.initControls();
 
-    // Song selector
+    /**Song selector*/
     this.songSelector = new SongSelector(() => this.resume());
   }
 
@@ -208,8 +208,8 @@ export class LyricsApp {
    */
   getNumberOfPointsNeeded() {
     return Math.ceil(
-      (this.songLength * MAGIC_NUMBERS.POINTS_PER_SECOND) /
-        MAGIC_NUMBERS.NUMBER_STEPS_PER_POINTS,
+      (this.songLength * GLOBAL_VARIABLES.POINTS_PER_SECOND) /
+        GLOBAL_VARIABLES.NUMBER_STEPS_PER_POINTS,
     );
   }
 
@@ -224,17 +224,19 @@ export class LyricsApp {
     for (let i = 0; i < this.getNumberOfPointsNeeded(); i++) {
       // Get the z pos
       const z =
-        i * MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS * MAGIC_NUMBERS.GRID_SIZE.Z;
+        i *
+        GLOBAL_VARIABLES.DISTANCE_BETWEEN_POINTS *
+        GLOBAL_VARIABLES.GRID_SIZE.Z;
 
       // Randomize a where the camera will go (bounds of current-1 and current+1)
       const minX = Math.max(0, lastX - 1);
-      const maxX = Math.min(MAGIC_NUMBERS.POINTS_GEN.MAX_X, lastX + 1);
+      const maxX = Math.min(GLOBAL_VARIABLES.POINTS_GEN.MAX_X, lastX + 1);
       const x = randInt(minX, maxX);
       let pos;
       // Generates the position
       pos = new THREE.Vector3(
-        x * MAGIC_NUMBERS.GRID_SIZE.X,
-        MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
+        x * GLOBAL_VARIABLES.GRID_SIZE.X,
+        GLOBAL_VARIABLES.POINTS_GEN.FIXED_Y,
         z,
       );
       pointsRaw.push({
@@ -243,31 +245,35 @@ export class LyricsApp {
 
       // Add the buildings everywhere except where the camera will go
       for (
-        let j = MAGIC_NUMBERS.POINTS_GEN.BUILDS.MIN_X;
-        j <= MAGIC_NUMBERS.POINTS_GEN.BUILDS.MAX_X;
+        let j = GLOBAL_VARIABLES.POINTS_GEN.BUILDS.MIN_X;
+        j <= GLOBAL_VARIABLES.POINTS_GEN.BUILDS.MAX_X;
         j++
       ) {
         if (j !== x) {
           // If there's a difference of 1 DO NOT add more buildings than 1 per point, else the camera will go through some buildings
           if (Math.abs(j - x) === 1) {
             this.buildManager.placeVirtualBuild(
-              j * MAGIC_NUMBERS.GRID_SIZE.X,
+              j * GLOBAL_VARIABLES.GRID_SIZE.X,
               z,
-              Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
+              Math.abs(x - j) < GLOBAL_VARIABLES.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
               Math.abs(x - j),
             );
           } else {
             // If there's more than 1 grid between the camera path and the building, create some more buildings to give a "full city" feeling
-            for (let i = 1; i <= MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER; i++) {
+            for (
+              let i = 1;
+              i <= GLOBAL_VARIABLES.FAKE_BUILD_LAYER_NUMBER;
+              i++
+            ) {
               const zOffset =
                 i *
-                ((MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS *
-                  MAGIC_NUMBERS.GRID_SIZE.Z) /
-                  MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER);
+                ((GLOBAL_VARIABLES.DISTANCE_BETWEEN_POINTS *
+                  GLOBAL_VARIABLES.GRID_SIZE.Z) /
+                  GLOBAL_VARIABLES.FAKE_BUILD_LAYER_NUMBER);
               this.buildManager.placeVirtualBuild(
-                j * MAGIC_NUMBERS.GRID_SIZE.X,
+                j * GLOBAL_VARIABLES.GRID_SIZE.X,
                 z + zOffset,
-                Math.abs(x - j) < MAGIC_NUMBERS.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
+                Math.abs(x - j) < GLOBAL_VARIABLES.BUILD_LIGHT.MAX_DISTANCE, // If 1 offset from x, can be a light
                 Math.abs(x - j),
               );
             }
@@ -284,7 +290,7 @@ export class LyricsApp {
       },
     ];
     // Place the custom-defiened intro points
-    for (const customPoint of MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH) {
+    for (const customPoint of GLOBAL_VARIABLES.INTRO.INTRO_CUSTOM_PATH) {
       points.push({
         x: customPoint.X,
         y: customPoint.Y,
@@ -298,19 +304,20 @@ export class LyricsApp {
         x: build.pos.x,
         y:
           Srand.random() *
-            (MAGIC_NUMBERS.PATH_Y.MAX_Y - MAGIC_NUMBERS.PATH_Y.MIN_Y + 1) +
-          MAGIC_NUMBERS.PATH_Y.MIN_Y,
-        z: build.pos.z + MAGIC_NUMBERS.BUILD_PATH_OFFSET.Z,
-        isMiddlePoint: false,
+            (GLOBAL_VARIABLES.PATH_Y.MAX_Y -
+              GLOBAL_VARIABLES.PATH_Y.MIN_Y +
+              1) +
+          GLOBAL_VARIABLES.PATH_Y.MIN_Y,
+        z: build.pos.z + GLOBAL_VARIABLES.BUILD_PATH_OFFSET.Z,
       });
     }
 
     // Add the end points
     const endPoint = points[points.length - 1];
     points.push({
-      x: MAGIC_NUMBERS.INTRO.OUTRO_END.X,
-      y: MAGIC_NUMBERS.INTRO.OUTRO_END.Y,
-      z: MAGIC_NUMBERS.INTRO.OUTRO_END.Z + endPoint.z,
+      x: GLOBAL_VARIABLES.INTRO.OUTRO_END.X,
+      y: GLOBAL_VARIABLES.INTRO.OUTRO_END.Y,
+      z: GLOBAL_VARIABLES.INTRO.OUTRO_END.Z + endPoint.z,
     });
     return points;
   }
@@ -326,35 +333,37 @@ export class LyricsApp {
 
     // Set the *real* floor size
     this.floor.geometry.scale(
-      MAGIC_NUMBERS.FLOOR_SIZE.X,
+      GLOBAL_VARIABLES.FLOOR_SIZE.X,
       1,
       this.cameraPathPoints[this.cameraPathPoints.length - 2].z +
-        MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END,
+        GLOBAL_VARIABLES.FLOOR_SIZE.OFFSET_Z_END,
     );
     this.floor.position.z =
       this.cameraPathPoints[this.cameraPathPoints.length - 2].z / 2 -
-      MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z +
-      MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END / 2;
+      GLOBAL_VARIABLES.FLOOR_SIZE.OFFSET_Z +
+      GLOBAL_VARIABLES.FLOOR_SIZE.OFFSET_Z_END / 2;
 
     // Initialize the path handler class
     this.pathGen = new PathGen(this.cameraPathPoints, this);
 
     // Initialize the shooting star's particle system
     const material = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
-      emissive: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
+      color: GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_COLOR,
+      emissive: GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_COLOR,
+      emissiveIntensity:
+        GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
+      transparent: true,
     });
     const particleSystem = new ParticleSystem(
       this.scene,
-      MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES.NUMBER,
+      GLOBAL_VARIABLES.SHOOTING_STAR.PARTICLES.NUMBER,
       material,
       new THREE.SphereGeometry(
-        MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES.SIZE,
+        GLOBAL_VARIABLES.SHOOTING_STAR.PARTICLES.SIZE,
         8,
         8,
       ),
-      MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES,
+      GLOBAL_VARIABLES.SHOOTING_STAR.PARTICLES,
     );
     this.particleSystems.push(particleSystem);
 
@@ -433,8 +442,8 @@ export class LyricsApp {
   refill(nextRefillZ) {
     const lastRefillZ =
       nextRefillZ -
-      MAGIC_NUMBERS.REFILL_INTERVAL -
-      MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET;
+      GLOBAL_VARIABLES.REFILL_INTERVAL -
+      GLOBAL_VARIABLES.REFILL_INTERVAL_OFFSET;
     // Add new ones
     this.buildManager.showVirtualBuilds(this.scene, nextRefillZ, lastRefillZ);
     // Removes old ones
@@ -462,7 +471,7 @@ export class LyricsApp {
     this.camera.getWorldDirection(cameraDirection);
 
     point.add(
-      cameraDirection.clone().multiplyScalar(MAGIC_NUMBERS.LYRICS.DISTANCE),
+      cameraDirection.clone().multiplyScalar(GLOBAL_VARIABLES.LYRICS.DISTANCE),
     );
 
     // Generates the text image
@@ -470,10 +479,10 @@ export class LyricsApp {
 
     // Creates the text's material
     const textMaterial = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.LYRICS_COLOR,
+      color: GLOBAL_VARIABLES.LYRICS_COLOR,
       side: THREE.DoubleSide,
-      emissive: MAGIC_NUMBERS.LYRICS_COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.LYRICS_EMISSIVE_INTENSITY,
+      emissive: GLOBAL_VARIABLES.LYRICS_COLOR,
+      emissiveIntensity: GLOBAL_VARIABLES.LYRICS_EMISSIVE_INTENSITY,
     });
 
     const textTexture = await new Promise((resolve) => {
@@ -492,8 +501,8 @@ export class LyricsApp {
 
     // Calculate the scale
     const scale = [
-      MAGIC_NUMBERS.LYRICS_SIZE * lyrics.length,
-      MAGIC_NUMBERS.LYRICS_SIZE,
+      GLOBAL_VARIABLES.LYRICS_SIZE * lyrics.length,
+      GLOBAL_VARIABLES.LYRICS_SIZE,
     ];
 
     // Create the actual object
@@ -549,7 +558,7 @@ export class LyricsApp {
     ]);
 
     // Shooting stars
-    for (let i = 0; i < MAGIC_NUMBERS.SHOOTING_STAR.NUMBER; i++) {
+    for (let i = 0; i < GLOBAL_VARIABLES.SHOOTING_STAR.NUMBER; i++) {
       this.generateShootingStar(i === 0, i);
     }
 
@@ -566,24 +575,25 @@ export class LyricsApp {
   generateShootingStar(last = false, i) {
     // Shooting Star mesh
     const starGeometry = new THREE.SphereGeometry(
-      MAGIC_NUMBERS.SHOOTING_STAR.SIZE *
-        ((i + MAGIC_NUMBERS.SHOOTING_STAR.MIN_SIZE) /
-          MAGIC_NUMBERS.SHOOTING_STAR.NUMBER),
+      GLOBAL_VARIABLES.SHOOTING_STAR.SIZE *
+        ((i + GLOBAL_VARIABLES.SHOOTING_STAR.MIN_SIZE) /
+          GLOBAL_VARIABLES.SHOOTING_STAR.NUMBER),
       16,
       16,
     );
     const starMaterial = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
-      emissive: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
+      color: GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_COLOR,
+      emissive: GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_COLOR,
+      emissiveIntensity:
+        GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
     });
     const shootingStar = new THREE.Mesh(starGeometry, starMaterial);
 
     // Creates a light if it's the last (front) point
     if (last) {
       const light = new THREE.PointLight(
-        MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
-        MAGIC_NUMBERS.SHOOTING_STAR.LIGHT_INTENSITY,
+        GLOBAL_VARIABLES.SHOOTING_STAR.MATERIAL_COLOR,
+        GLOBAL_VARIABLES.SHOOTING_STAR.LIGHT_INTENSITY,
         10,
       );
       light.position.set(0, 0, -0.2);
@@ -602,44 +612,48 @@ export class LyricsApp {
    */
   generateWarp() {
     // Distance between the camera and the warp's stars, used for to fake the fast that the warp's stars are moving fast
-    this.allStarsDistance = MAGIC_NUMBERS.INTRO.WARP.START_DISTANCE;
+    this.allStarsDistance = GLOBAL_VARIABLES.INTRO.WARP.START_DISTANCE;
 
     // All warp's stars
     const stars = [];
 
     // Creates a single material for all of them
     const warpMaterial = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.INTRO.WARP.COLOR,
+      color: GLOBAL_VARIABLES.INTRO.WARP.COLOR,
       transparent: true,
-      opacity: MAGIC_NUMBERS.INTRO.WARP.OPACITY,
-      emissive: MAGIC_NUMBERS.INTRO.WARP.COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.INTRO.WARP.EMISSIVE_INTENSITY,
+      opacity: GLOBAL_VARIABLES.INTRO.WARP.OPACITY,
+      emissive: GLOBAL_VARIABLES.INTRO.WARP.COLOR,
+      emissiveIntensity: GLOBAL_VARIABLES.INTRO.WARP.EMISSIVE_INTENSITY,
     });
-    for (let i = 0; i < MAGIC_NUMBERS.INTRO.WARP.NUMBER; i++) {
+    for (let i = 0; i < GLOBAL_VARIABLES.INTRO.WARP.NUMBER; i++) {
       // Creates the mesh
       const star = new THREE.CylinderGeometry(
-        MAGIC_NUMBERS.INTRO.WARP.SIZE,
-        MAGIC_NUMBERS.INTRO.WARP.SIZE,
-        MAGIC_NUMBERS.INTRO.WARP.SIZE,
+        GLOBAL_VARIABLES.INTRO.WARP.SIZE,
+        GLOBAL_VARIABLES.INTRO.WARP.SIZE,
+        GLOBAL_VARIABLES.INTRO.WARP.SIZE,
         20,
       );
       const warpStar = new THREE.Mesh(star, warpMaterial);
 
       // Set the star's metadata (base x y and z)
-      warpStar.userData.z = randInt(0, MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE);
+      warpStar.userData.z = randInt(
+        0,
+        GLOBAL_VARIABLES.INTRO.WARP.MAX_DISTANCE,
+      );
       warpStar.userData.y =
-        Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
-        MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
+        Srand.random() * GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MAX * 2 -
+        GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MAX;
       warpStar.userData.x =
-        Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
-        MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
+        Srand.random() * GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MAX * 2 -
+        GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MAX;
       // Set a "long" scale (appears like a line instead of a sphere)
-      warpStar.scale.z = MAGIC_NUMBERS.INTRO.WARP.SCALE;
+      warpStar.scale.z = GLOBAL_VARIABLES.INTRO.WARP.SCALE;
 
       // Do not create a warp star too close to the camera
       if (
-        Math.abs(warpStar.userData.y) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN ||
-        Math.abs(warpStar.userData.x) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN
+        Math.abs(warpStar.userData.y) >
+          GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MIN ||
+        Math.abs(warpStar.userData.x) > GLOBAL_VARIABLES.INTRO.WARP.DISTANCE.MIN
       ) {
         this.scene.add(warpStar);
         stars.push(warpStar);
@@ -670,23 +684,23 @@ export class LyricsApp {
         );
 
       // If it's not too close to the city
-      if (pos.z < MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+      if (pos.z < GLOBAL_VARIABLES.INTRO.WARP.STOP_AT) {
         // Set the new pos
         warpStar.position.set(pos.x, pos.y, pos.z - this.allStarsDistance);
         if (this.allStarsDistance < 0) {
           this.allStarsDistance += dt;
         }
-        warpStar.userData.z += -MAGIC_NUMBERS.INTRO.WARP.OFFSET_ADD * dt;
+        warpStar.userData.z += -GLOBAL_VARIABLES.INTRO.WARP.OFFSET_ADD * dt;
         // If it's behind the camera, reset the position, to make an infinite loop
         if (pos.z < this.camera.position.z) {
           warpStar.userData.z = randInt(
             0,
-            MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE,
+            GLOBAL_VARIABLES.INTRO.WARP.MAX_DISTANCE,
           );
         }
       } else {
         // Remove ONLY if the deltaTime is not "too much", else there's a bug where the warp stars disappear when you change your browser's tab
-        if (dt < MAGIC_NUMBERS.INTRO.WARP.TIME_REMOVE_BG) {
+        if (dt < GLOBAL_VARIABLES.INTRO.WARP.TIME_REMOVE_BG) {
           this.scene.remove(warpStar);
         }
       }
@@ -735,9 +749,9 @@ export class LyricsApp {
       lookAtMatrix.lookAt(
         this.camera.position,
         new THREE.Vector3(
-          MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].X,
-          MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].Y,
-          MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ,
+          GLOBAL_VARIABLES.INTRO.INTRO_CUSTOM_PATH[0].X,
+          GLOBAL_VARIABLES.INTRO.INTRO_CUSTOM_PATH[0].Y,
+          GLOBAL_VARIABLES.INTRO.OUTRO_END.Z + this.startZ,
         ),
         this.camera.up,
       );
@@ -748,12 +762,12 @@ export class LyricsApp {
 
       this.camera.quaternion.slerp(targetQuat, 0.05);
       this.camera.position.z +=
-        (newTime / 1000) * MAGIC_NUMBERS.INTRO.OUTRO_END.Z;
+        (newTime / 1000) * GLOBAL_VARIABLES.INTRO.OUTRO_END.Z;
 
       // When the end's animation is over, restart
       if (
         this.camera.position.z >
-        MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ
+        GLOBAL_VARIABLES.INTRO.OUTRO_END.Z + this.startZ
       ) {
         this.restart();
       }
@@ -774,7 +788,6 @@ export class LyricsApp {
     const [newPos, objective, rail] = this.pathGen.update(
       newTime / 1000,
       this.changeNeeded !== null,
-      !this.start,
     );
 
     // If it's not in the song selector
@@ -787,7 +800,7 @@ export class LyricsApp {
       // If it's in the intro
       if (this.isIntro) {
         // If the intro should end
-        if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+        if (newPos.z > GLOBAL_VARIABLES.INTRO.WARP.STOP_AT) {
           // Initialize the progress
           this.initProgress();
           // Now the resume can play the audio
@@ -823,7 +836,7 @@ export class LyricsApp {
         if (star) {
           star.position.set(
             point.x,
-            point.y - MAGIC_NUMBERS.SHOOTING_STAR.OFFSET_Y,
+            point.y - GLOBAL_VARIABLES.SHOOTING_STAR.OFFSET_Y,
             point.z,
           );
         }
@@ -853,10 +866,10 @@ export class LyricsApp {
     // Reset the pos to make the animation infinite
     if (
       !this.start &&
-      newPos.z > MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].Z / 4
+      newPos.z > GLOBAL_VARIABLES.INTRO.INTRO_CUSTOM_PATH[0].Z / 4
     ) {
       this.pathGen.currentTime = 0;
-      this.pathGen.currentPoint = 0;
+      this.pathGen.currentSmoothPoint = 0;
     }
 
     // If it's the end of the audio, start the end animation
@@ -895,10 +908,10 @@ export class LyricsApp {
         build.isLight &&
         // ...and if it close enough
         build.position.z - camPos.z <
-          MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
+          GLOBAL_VARIABLES.BUILD_LIGHT.START_AT /
             Math.pow(
               build.distance,
-              1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
+              1 / GLOBAL_VARIABLES.BUILD_LIGHT.DISTANCE_DECAY,
             )
       ) {
         // Start the light animation
@@ -914,7 +927,7 @@ export class LyricsApp {
 
         // Smoothly light up the building
         mesh.material.emissiveIntensity +=
-          (deltaTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
+          (deltaTime / 1000) * (1 / GLOBAL_VARIABLES.BUILD_LIGHT.TIME_TO_FULL);
 
         // If the it's lighted
         if (mesh.material.emissiveIntensity > 1) {
@@ -928,11 +941,11 @@ export class LyricsApp {
       if (
         !build.light ||
         build.position.z - this.camera.position.z >
-          MAGIC_NUMBERS.BUILD_LIGHT.START_AT
+          GLOBAL_VARIABLES.BUILD_LIGHT.START_AT
       ) {
         const distance = build.position.z - this.camera.position.z;
         const colorNbr = Math.min(
-          distance / MAGIC_NUMBERS.BUILD_SHADER.DISTANCE_TO_WHITE,
+          distance / GLOBAL_VARIABLES.BUILD_SHADER.DISTANCE_TO_WHITE,
           1,
         );
 
@@ -940,7 +953,7 @@ export class LyricsApp {
         build.mesh.children[0].children[1].material.color =
           new THREE.Color().setRGB(colorNbr, colorNbr, colorNbr);
         build.mesh.children[0].children[1].material.emissiveIntensity =
-          colorNbr / MAGIC_NUMBERS.BUILD_SHADER.EMISSIVE;
+          colorNbr / GLOBAL_VARIABLES.BUILD_SHADER.EMISSIVE;
       }
     }
   }
@@ -994,7 +1007,7 @@ export class LyricsApp {
       document.getElementById("progress-bar"),
       {
         // Speed of the lyrics
-        speed: MAGIC_NUMBERS.PROGRESS.SPEED,
+        speed: GLOBAL_VARIABLES.PROGRESS.SPEED,
       },
       (progress) => {
         // Do NOT use the audio as ref, it can desync!

@@ -1,6 +1,6 @@
 import { Camera, Raycaster, Scene, Vector3 } from "three";
 import { lerp, randInt } from "./utils/Math.js";
-import { MAGIC_NUMBERS } from "./MagicNumbers.js";
+import { GLOBAL_VARIABLES } from "./Globals.js";
 import { FireworkManager } from "./Firework.js";
 import { BuildManager } from "./BuildManager.js";
 
@@ -21,35 +21,35 @@ export class BuildInteraction {
    * @param {Camera} camera the camera
    */
   constructor(scene, buildManager, htmlCanvas, camera) {
-    // The scene
+    /** The scene */
     this.scene = scene;
-    // The BuildManager class
+    /** The BuildManager class */
     this.buildManager = buildManager;
-    // The three.js canvas
+    /** The three.js canvas */
     this.element = htmlCanvas;
-    // The last recorded mouse position
+    /** The last recorded mouse position */
     this.mousePos = null;
-    // W and H of the canvas
+    /** W and H of the canvas */
     this.sizes = {
       width: this.element.offsetWidth,
       height: this.element.offsetHeight,
     };
-    // A Three.js raycaster
+    /** A Three.js raycaster */
     this.raycaster = new Raycaster();
-    // The scene's camera
+    /** The scene's camera */
     this.camera = camera;
-    // The objects currently hovered
+    /** The objects currently hovered */
     this.hoverObjects = [];
-    // If a click happened since last frame
+    /** If a click happened since last frame */
     this.click = false;
-    // The objects that are currently playing the hover stop animation
+    /** The objects that are currently playing the hover stop animation */
     this.hoverStopObjects = [];
-    // DELETED: fireworks
-    // Mousemove event
+    /** DELETED: fireworks */
+    /** Mousemove event */
     this.element.addEventListener("mousemove", (e) => this.mouseMove(e));
-    // Click event
+    /** Click event */
     this.element.addEventListener("click", (e) => (this.click = true));
-    // Resize event
+    /** Resize event */
     window.addEventListener(
       "resize",
       () => {
@@ -61,10 +61,10 @@ export class BuildInteraction {
       false,
     );
 
-    // Firework system
+    /** Firework system */
     this.fireworkManager = new FireworkManager(scene);
 
-    // Last time an auto firework was launched
+    /** Last time an auto firework was launched */
     this.lastAutoFirework = Date.now() / 1000;
   }
 
@@ -127,16 +127,16 @@ export class BuildInteraction {
       for (const element of this.hoverObjects) {
         // Update the current time (for lerp)
         element.userData.t +=
-          delta / MAGIC_NUMBERS.BUILD_INTERACTION.HOVER_ANIM_TIME;
+          delta / GLOBAL_VARIABLES.BUILD_INTERACTION.HOVER_ANIM_TIME;
         // Lerp the scale
         let scale = lerp(
           element.userData.startScale,
-          MAGIC_NUMBERS.BUILD_INTERACTION.SCALE_HOVER,
+          GLOBAL_VARIABLES.BUILD_INTERACTION.SCALE_HOVER,
           element.userData.t,
         );
         // Clamp at SCALE_HOVER
-        if (scale > MAGIC_NUMBERS.BUILD_INTERACTION.SCALE_HOVER) {
-          scale = MAGIC_NUMBERS.BUILD_INTERACTION.SCALE_HOVER;
+        if (scale > GLOBAL_VARIABLES.BUILD_INTERACTION.SCALE_HOVER) {
+          scale = GLOBAL_VARIABLES.BUILD_INTERACTION.SCALE_HOVER;
         }
         // Set the scale to the new one
         element.scale.set(scale, scale, scale);
@@ -144,7 +144,7 @@ export class BuildInteraction {
       for (const element of this.hoverStopObjects) {
         // Update the current time (for lerp)
         element.userData.t +=
-          delta / MAGIC_NUMBERS.BUILD_INTERACTION.HOVER_ANIM_TIME;
+          delta / GLOBAL_VARIABLES.BUILD_INTERACTION.HOVER_ANIM_TIME;
         const scale = lerp(element.userData.startScale, 1, element.userData.t);
         // Lerp the scale
         element.scale.set(scale, scale, scale);
@@ -166,7 +166,7 @@ export class BuildInteraction {
         this.fireworkManager.launchFirework(
           new Vector3(
             pos.x,
-            pos.y + MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
+            pos.y + GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
             pos.z,
           ),
         );
@@ -175,7 +175,7 @@ export class BuildInteraction {
     // If an auto firework can be launched
     if (
       Date.now() / 1000 - this.lastAutoFirework >
-      MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.AUTO_INTERVAL
+      GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.AUTO_INTERVAL
     ) {
       // Reset the counter
       this.lastAutoFirework = Date.now() / 1000;
@@ -186,7 +186,7 @@ export class BuildInteraction {
           b.light &&
           b.position.z >
             this.camera.position.z +
-              MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.AUTO_Z_OFFSET,
+              GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.AUTO_Z_OFFSET,
       );
       // Select a random build
       const build = builds[randInt(0, builds.length)];
@@ -196,7 +196,7 @@ export class BuildInteraction {
           new Vector3(
             build.position.x,
             build.position.y +
-              MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
+              GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK_Y_OFFSET,
             build.position.z,
           ),
         );

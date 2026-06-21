@@ -1,6 +1,6 @@
 // Every "magic" number should be here
 
-export const MAGIC_NUMBERS = {
+export const GLOBAL_VARIABLES = {
   AREA_SIZE: { x: 100, z: 100 },
   BUILDS_X_OFFSET: 2,
   BUILDS_Z_OFFSET: 5,
@@ -35,11 +35,6 @@ export const MAGIC_NUMBERS = {
     MATERIAL_LIGHT_INTENSITY: 2,
     PARTICLES: {
       NUMBER: 100,
-      OFFSET_SIZE: {
-        X: 0.1,
-        Y: 0.1,
-        Z: 0.1,
-      },
       RANDOM_TURBULENCE: 0.75,
       DURATION: 2,
       SIZE: 0.075,

@@ -11,18 +11,18 @@ export class Controls {
    */
   constructor(htmlElement, playClbk, pauseClbk, stopClbk) {
     this.container = htmlElement;
-    // Gets the play button
+    /** Gets the play button */
     this.playBtn = this.container.querySelector("#play");
-    // Gets the play/pause icons
+    /** Gets the play/pause icons */
     this.playBtnPlayIcon = this.container.querySelector("#play-play");
     this.playBtnPauseIcon = this.container.querySelector("#play-pause");
-    // Gets the stop button
+    /** Gets the stop button */
     this.stopBtn = this.container.querySelector("#exit");
-    // Stores if the current state is "playing" or "paused"
+    /** Stores if the current state is "playing" or "paused" */
     this.isPlaying = true;
-    // Registers the stop/exit click event
+    /** Registers the stop/exit click event */
     this.stopBtn.addEventListener("click", stopClbk);
-    // Registers the play/pause click event
+    /** Registers the play/pause click event */
     this.playBtn.addEventListener("click", () => {
       // Invert the current state
       this.isPlaying = !this.isPlaying;

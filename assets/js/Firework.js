@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MAGIC_NUMBERS } from "./MagicNumbers.js";
+import { GLOBAL_VARIABLES } from "./Globals.js";
 
 /**
  * Represent a firework, can create particles and be updated
@@ -11,23 +11,23 @@ class Firework {
    * @param {THREE.Scene} scene the main scene
    */
   constructor(pos, scene) {
-    // Sets the pos, and add an offset to it
+    /** Sets the pos, and add an offset to it */
     this.position = pos;
-    this.position.y += MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK_Y_OFFSET;
-    // Stores the scene var
+    this.position.y += GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK_Y_OFFSET;
+    /** Stores the scene var */
     this.scene = scene;
-    // is the firework dead?
+    /** is the firework dead? */
     this.isDead = false;
-    // For how long has the firework been alive
+    /** For how long has the firework been alive */
     this.lifetime = 0;
-    // The single first particle that simulates the rocket
+    /** The single first particle that simulates the rocket */
     this.trailParticle = this.createParticle(this.position);
 
-    // The particles used in the explosion
+    /** The particles used in the explosion */
     this.explosionParticles = [];
-    // If it already exploded
+    /** If it already exploded */
     this.exploded = false;
-    // x velocity multiplicator, so to goes right or left (randomly)
+    /** x velocity multiplicator, so to goes right or left (randomly) */
     this.xMult = Math.random() > 0.5 ? 1 : -1;
   }
 
@@ -47,11 +47,11 @@ class Firework {
     const material = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
-      emissiveIntensity: MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.INTENSITY,
+      emissiveIntensity: GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.INTENSITY,
     });
     // Sphere
     const geometry = new THREE.SphereGeometry(
-      MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.PARTICLE_RADIUS,
+      GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.PARTICLE_RADIUS,
       8,
       8,
     );
@@ -79,10 +79,11 @@ class Firework {
     if (!this.exploded) {
       // Updates the position
       this.position.y +=
-        MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.UNIT_PER_SECOND * dt;
+        GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.UNIT_PER_SECOND * dt;
       // /2 so the rocket goes at a 45° angles
       this.position.x +=
-        ((MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.UNIT_PER_SECOND * dt) / 2) *
+        ((GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.UNIT_PER_SECOND * dt) /
+          2) *
         this.xMult;
       // Sets the new pos
       this.trailParticle.position.set(
@@ -92,7 +93,9 @@ class Firework {
       );
 
       // If it's time to explode
-      if (this.lifetime > MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.LIFETIME) {
+      if (
+        this.lifetime > GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.LIFETIME
+      ) {
         // Explode
         this.explode();
       }
@@ -100,8 +103,8 @@ class Firework {
     // If it's time to remove the firework (die)
     if (
       this.lifetime >
-      MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.LIFETIME +
-        MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.EXPLOSION_LIFETIME
+      GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.LIFETIME +
+        GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.EXPLOSION_LIFETIME
     ) {
       this.die();
     }
@@ -142,22 +145,22 @@ class Firework {
     // Generates NBR_PARTICLES particles
     for (
       let i = 0;
-      i <= MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.NBR_PARTICLES;
+      i <= GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.NBR_PARTICLES;
       i++
     ) {
       // Gets a random velocity
       const velocity = new THREE.Vector3(
         THREE.MathUtils.randFloat(
-          -MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
-          MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          -GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
         ),
         THREE.MathUtils.randFloat(
-          -MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
-          MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          -GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
         ),
         THREE.MathUtils.randFloat(
-          -MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
-          MAGIC_NUMBERS.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          -GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
+          GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.VELOCITY,
         ),
       );
       // Creates the particle
@@ -180,9 +183,9 @@ export class FireworkManager {
    * @param {THREE.Scene} scene the main scene
    */
   constructor(scene) {
-    // The list of fireworks (to update)
+    /**The list of fireworks (to update) */
     this.fireworks = [];
-    // "Saves" the main scene var
+    /**"Saves" the main scene var */
     this.scene = scene;
   }
 

@@ -1,4 +1,4 @@
-# My entry for the Magical Mirai Programming contest
+# My entry for the Magical Mirai Programming contest (LyriCity)
 
 This is my entry for the magical mirai programming contest
 
@@ -117,7 +117,7 @@ I commented a LOT the code, so it should be easy to read
 Located under assets/js
 
 #### App
-Locaiton: App.js
+Location: App.js
 The main app, manages (most) ThreeJS stuff.
 Manages the overall state of the app, the changes between parts (song selector, intro, play, outro)
 Is the "body" of the app
@@ -155,3 +155,52 @@ The class that manages all the fireworks (handles updates and launch)
 #### Main.js
 Class: None
 Entrypoint for the app
+
+#### ParticleSystem
+Location: ParticleSystem.js
+A particle system utils
+Can:
+- ensure the number of particles
+- remove all particles
+- add a particle
+- updates particles
+
+#### Point
+Location: PathGen.js
+Small util, a 3d point
+Has some other functions that THREE.Vector3 doesn't have
+ex. distanceTo, and so on
+
+#### PathGen
+Location: PathGen.js
+Manages the path, with:
+- a loop
+- knows which pos to return at which time
+It also creates a smooth path
+PathGen stands for PathGenerator
+points stands for the cameraPathPoints
+pathPoints stands for the smooth path points
+
+#### Progress
+Location: Progress.js
+The progress bar
+Handles click -> changes playback time
+Can be updates
+Also shows lyrics, with a little animation
+
+#### SettingsPanel
+Location: SettingsPanel.js
+The settings panel.
+Handles:
+- The settings (saving/loading)
+- The page translation
+
+#### SongSelector
+Location: SongSelector.js
+ The song selector
+ Uses SVGs and modifies them. I know this is not the best way to do it, but like that I can create the base svgs on Inkscape, it's way easier
+ Uses three buttons to go to the next song, play or go to the last song
+ Also shows the song title/artist in an svg. Handles translations.
+
+## Credits:
+[CREDITS.md](./CREDITS.md)

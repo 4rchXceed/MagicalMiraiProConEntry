@@ -1,4 +1,4 @@
-import { MAGIC_NUMBERS } from "./MagicNumbers.js";
+import { GLOBAL_VARIABLES } from "./Globals.js";
 import { randInt } from "./utils/Math.js";
 import * as THREE from "three";
 
@@ -32,17 +32,17 @@ export class Build {
    * @param {*} distance
    */
   constructor(model, position, isLight, distance) {
-    // The model ID
+    /**The model ID*/
     this.model = model;
-    // The build's position
+    /**The build's position*/
     this.position = position;
-    // The Three.js mesh
+    /**The Three.js mesh*/
     this.mesh = null;
-    // lightable ?
+    /**lightable ?*/
     this.isLight = isLight;
-    // Currently lighted?
+    /**Currently lighted?*/
     this.isLighting = false;
-    // Lightable (backup vra)
+    /**Lightable (backup vra)*/
     this.light = isLight;
     this.distance = distance;
   }
@@ -129,15 +129,15 @@ export class Build {
     texture.wrapT = THREE.RepeatWrapping;
 
     texture.repeat.set(
-      MAGIC_NUMBERS.BUILD_LIGHT.TEXTURE_SIZE,
-      MAGIC_NUMBERS.BUILD_LIGHT.TEXTURE_SIZE,
+      GLOBAL_VARIABLES.BUILD_LIGHT.TEXTURE_SIZE,
+      GLOBAL_VARIABLES.BUILD_LIGHT.TEXTURE_SIZE,
     );
 
     // Create the lighted building material
     this.LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
-      emissive: MAGIC_NUMBERS.BUILD_LIGHT.COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.BUILD_LIGHT.INTENSITY,
+      color: GLOBAL_VARIABLES.BUILD_LIGHT.COLOR,
+      emissive: GLOBAL_VARIABLES.BUILD_LIGHT.COLOR,
+      emissiveIntensity: GLOBAL_VARIABLES.BUILD_LIGHT.INTENSITY,
       emissiveMap: texture,
     });
 

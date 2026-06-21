@@ -10,9 +10,9 @@ export class BuildManager {
    * Creates a BuildManager
    */
   constructor() {
-    // Stores the builds that are already placed
+    /** Stores the builds that are already placed */
     this.usedGrids = [];
-    // Stores the Build objects
+    /** Stores the Build objects */
     this.builds = [];
   }
 
