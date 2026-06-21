@@ -121,3 +121,16 @@ Locaiton: App.js
 The main app, manages (most) ThreeJS stuff.
 Manages the overall state of the app, the changes between parts (song selector, intro, play, outro)
 Is the "body" of the app
+
+#### Build
+Location: Build.js
+A single build.
+Handles creation, deletion and model loading
+
+#### BuildInteractions
+Location: BuildInteractions.js
+Handles all build interactions + wraps the fireworkManager
+Handles:
+- Hover
+- Click
+- Auto-launched fireworks

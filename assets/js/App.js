@@ -26,6 +26,14 @@ export class LyricsApp {
    * Something that isn't relevant, but still needed (for ex. to specify the width of the city's floor)
    */
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
+  /**
+   *The main app, manages (most) ThreeJS stuff.
+   * Manages the overall state of the app, the changes between parts (song selector, intro, play, outro)
+   * Is the "body" of the app
+   * @param {HTMLAudioElement} audio
+   * @param {boolean} debug
+   * @param {number} seed
+   */
   constructor(audio, debug = false, seed = 39) {
     if (isNaN(seed)) seed = 39;
     Srand.seed(seed);
