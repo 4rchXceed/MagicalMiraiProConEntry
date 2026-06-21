@@ -1,2 +1,7 @@
 audio-tests/
 assets/textures/skybox/source/
+convert.py
+api-tests.html
+converted.json
+progress-test.html
+assets/shaders

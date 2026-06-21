@@ -60,21 +60,21 @@
        width="68.819565"
        height="2.5726938"
        x="15.498856"
-       y="130.11932"
+       y="140.11932"
        ry="1.2863469"
        rx="1.1523516" />
     <circle
        style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.61325;stroke-dasharray:none;stroke-opacity:1"
        id="path6"
        cx="16.551991"
-       cy="131.43944"
+       cy="141.43944"
        r="2.8803515" />
     <rect
        style="fill:#86cecb;fill-opacity:1;stroke-width:4.99999"
        id="player-song-title-elem"
        width="0.00001"
        height="0.00001"
-       x="8"
+       x="12"
        y="78.316666"
        ry="2.6458333" />
     <rect
@@ -83,7 +83,7 @@
        width="0.00001"
        height="0.00001"
        x="16"
-       y="106.89166"
+       y="116.89166"
        ry="1.984375" />
     <path
        fill="currentColor"

@@ -18,7 +18,13 @@ import { BuildInteraction } from "./BuildInteraction.js";
 import { SongSelector } from "./SongSelector.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 
+/**
+ * The main app
+ */
 export class LyricsApp {
+  /**
+   * Something that isn't relevant, but still needed (for ex. to specify the width of the city's floor)
+   */
   AREA_SIZE = MAGIC_NUMBERS.AREA_SIZE;
   constructor(audio, debug = false, seed = 39) {
     if (isNaN(seed)) seed = 39;
@@ -26,65 +32,85 @@ export class LyricsApp {
     // Audio source
     this.audio = audio;
     // Data
+    // Debug mode
     this.debug = debug;
-    this.modelsLoaded = {};
-    this.usedGrids = [];
+
+    // DELETED: usedGrids, modelsLoaded
+    // Contains all the part to create the shooting star
     this.shootingStars = [];
-    this.cameraReferencePoint = 0;
+    // DELETED: cameraReferencePoint
+    // Used to create a delta instead of a time-since start
     this.lastTime = 0;
+    // The first frame has an "oversized" delta, this is a small fix
     this.isFirstFrame = true;
-    this.font = null;
-    this.texts = {};
-    this.zOffset = 0;
+    // DELETED: font, texts, zOffset
+    // Same as lastTime, but for a different usage
     this.currentTime = 0;
 
+    // Classes
+    //
     // Settings
     this.settings = new SettingsPanel();
 
-    // Classes
+    // The build manager
     this.buildManager = new BuildManager();
-    this.cameraRotationEaseInOut = {
-      start: 0,
-      change: 0,
-      duration: MAGIC_NUMBERS.ROTATION_TIME,
-    };
+    // DELETED: cameraRotationEaseInOut
+    // Pool for all particle systems
     this.particleSystems = [];
 
     // Not yet initialized attributes
+    // All the loaders (textures, 3d models)
     this.loaders = null;
-    this.pathGrid = null;
-    this.pathFinder = null;
+    // DELETED: pathGrid
+    // DELETED: pathFinder
     this.pathGen = null;
 
     // Three.js objects
+    // The Three.js scene
     this.scene = null;
+    // The camera
     this.camera = null;
+    // The WebGL renderer
     this.renderer = null;
+    // The city's floor
     this.floor = null;
-    this.cameraLight = null;
+    // DELETED: cameraLight
 
+    // Instantiates Stat.js if in debug mode
     if (this.debug) {
       this.stats = new Stats();
       this.stats.showPanel(0);
       document.body.appendChild(this.stats.dom);
     }
 
+    // The audio length
     this.songLength = this.audio.duration;
 
+    // Toggle if it's into (into = warp animation)
     this.isIntro = true;
 
+    // Warp stars
     this.stars = null;
-    this.lastCamPos = null;
+
+    // The progress bar
     this.progress = null;
 
+    // Used for the progress bar
     this.changeNeeded = null;
 
+    // Pause the app toggle
     this.stop = false;
+
+    // Starts the app initiation
     this.init();
 
+    // Toggle if the resume can play the audio or if it's during isIntro = true
     this.canPlay = false;
+    // Is the app init finished?
     this.initOk = false;
+    // Did we start the song play
     this.start = false;
+    // Did end the song play (finishes the preview)
     this.end = false;
 
     // Init play/pause btns
@@ -94,45 +120,52 @@ export class LyricsApp {
     this.songSelector = new SongSelector(() => this.resume());
   }
 
+  /**
+   * Initialize all the "heavy" stuff for the app
+   */
   init() {
     this.initOk = true;
+
+    // Loaders
     this.loaders = {
       gltf: new GLTFLoader(),
       cubeTexture: new THREE.CubeTextureLoader(),
       svg: new SVGLoader(),
       texture: new THREE.TextureLoader(),
     };
+
+    // Init Three.js
     this.scene = new THREE.Scene();
+
+    // Creates camera
     this.camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
       0.1,
       1000,
     );
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.composer = new EffectComposer(this.renderer);
-
-    // Bloom
-    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
-    this.bloomPass = new UnrealBloomPass(resolution, 0.5, 0.1, 0.1);
-
-    // "Tweaks"
-    this.camera.position.z = 3;
-    this.camera.position.y = 3;
-    this.camera.rotation.y = degToRad(180);
-    this.camera.position.x = this.AREA_SIZE.x / 2;
-    this.camera.rotation.x = degToRad(0);
-
-    // Add to scene
-    document.body.appendChild(this.renderer.domElement);
     this.scene.add(this.camera);
 
+    // Creates renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Creates the composer
+    this.composer = new EffectComposer(this.renderer);
+
+    // Bloom effect
+    const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+    this.bloomPass = new UnrealBloomPass(resolution, 0.5, 0.1, 0.1);
     // Handle composer
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(this.bloomPass);
 
-    // BuildInteraction
+    // DELETED: "Tweaks"
+
+    // Add the canvas to the HTML
+    document.body.appendChild(this.renderer.domElement);
+
+    // Build interaction manager
     this.buildInteractionManager = new BuildInteraction(
       this.scene,
       this.buildManager,
@@ -143,6 +176,7 @@ export class LyricsApp {
     // Load models and generate elements
     this.generateElements();
 
+    // Resize event => resize canvas
     window.addEventListener(
       "resize",
       () => {
@@ -154,46 +188,59 @@ export class LyricsApp {
       false,
     );
 
+    // Loads the building models and after that, finishes the initialization
     Build.loadModels(() => this.loadedCallback(), this.loaders);
   }
 
-  enableDebug() {
-    new OrbitControls(this.camera, this.renderer.domElement);
+  // DELETED: enableDebug
+
+  /**
+   * Gets the number of points (building rows) needed to cover the entire song
+   * @returns {number} (int) the number of points
+   */
+  getNumberOfPointsNeeded() {
+    return Math.ceil(
+      (this.songLength * MAGIC_NUMBERS.POINTS_PER_SECOND) /
+        MAGIC_NUMBERS.NUMBER_STEPS_PER_POINTS,
+    );
   }
 
+  /**
+   * Generates the points (aka. where the camera will go)
+   * @returns
+   */
   getPoints() {
-    const choosenBuilds = [];
+    const pointsRaw = [];
     let lastX = 0;
 
-    for (
-      let i = 0;
-      i <
-      Math.ceil(
-        (this.songLength * MAGIC_NUMBERS.POINTS_PER_SECOND) /
-          MAGIC_NUMBERS.NUMBER_STEPS_PER_POINTS,
-      );
-      i++
-    ) {
+    for (let i = 0; i < this.getNumberOfPointsNeeded(); i++) {
+      // Get the z pos
       const z =
         i * MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS * MAGIC_NUMBERS.GRID_SIZE.Z;
+
+      // Randomize a where the camera will go (bounds of current-1 and current+1)
       const minX = Math.max(0, lastX - 1);
       const maxX = Math.min(MAGIC_NUMBERS.POINTS_GEN.MAX_X, lastX + 1);
       const x = randInt(minX, maxX);
       let pos;
+      // Generates the position
       pos = new THREE.Vector3(
         x * MAGIC_NUMBERS.GRID_SIZE.X,
         MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
         z,
       );
-      choosenBuilds.push({
+      pointsRaw.push({
         pos: pos,
       });
+
+      // Add the buildings everywhere except where the camera will go
       for (
         let j = MAGIC_NUMBERS.POINTS_GEN.BUILDS.MIN_X;
         j <= MAGIC_NUMBERS.POINTS_GEN.BUILDS.MAX_X;
         j++
       ) {
         if (j !== x) {
+          // If there's a difference of 1 DO NOT add more buildings than 1 per point, else the camera will go through some buildings
           if (Math.abs(j - x) === 1) {
             this.buildManager.placeVirtualBuild(
               j * MAGIC_NUMBERS.GRID_SIZE.X,
@@ -202,11 +249,8 @@ export class LyricsApp {
               Math.abs(x - j),
             );
           } else {
+            // If there's more than 1 grid between the camera path and the building, create some more buildings to give a "full city" feeling
             for (let i = 1; i <= MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER; i++) {
-              const max =
-                (MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS *
-                  MAGIC_NUMBERS.GRID_SIZE.Z) /
-                MAGIC_NUMBERS.FAKE_BUILD_LAYER_NUMBER;
               const zOffset =
                 i *
                 ((MAGIC_NUMBERS.DISTANCE_BETWEEN_POINTS *
@@ -223,7 +267,7 @@ export class LyricsApp {
         }
       }
     }
-    const buildPositions = [
+    const points = [
       // First point is ignored, so we just put dummy values
       {
         x: 0,
@@ -233,25 +277,16 @@ export class LyricsApp {
     ];
     // Place the custom-defiened intro points
     for (const customPoint of MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH) {
-      buildPositions.push({
+      points.push({
         x: customPoint.X,
         y: customPoint.Y,
         z: customPoint.Z,
       });
     }
 
-    // let lastBuild = null;
-    for (const build of choosenBuilds) {
-      // if (lastBuild) {
-      //   buildPositions.push({
-      //     x: (lastBuild.pos.x + build.pos.x) / 2,
-      //     y: (lastBuild.pos.y + build.pos.y) / 2,
-      //     z: (lastBuild.pos.z + build.pos.z) / 2,
-      //     isMiddlePoint: true,
-      //   });
-      // }
-      // lastBuild = build;
-      buildPositions.push({
+    // Generates the points WITH a "y" pos (random)
+    for (const build of pointsRaw) {
+      points.push({
         x: build.pos.x,
         y:
           Srand.random() *
@@ -261,137 +296,42 @@ export class LyricsApp {
         isMiddlePoint: false,
       });
     }
-    const endPoint = buildPositions[buildPositions.length - 1];
-    buildPositions.push({
+
+    // Add the end points
+    const endPoint = points[points.length - 1];
+    points.push({
       x: MAGIC_NUMBERS.INTRO.OUTRO_END.X,
       y: MAGIC_NUMBERS.INTRO.OUTRO_END.Y,
       z: MAGIC_NUMBERS.INTRO.OUTRO_END.Z + endPoint.z,
     });
-    return buildPositions;
+    return points;
   }
 
-  // buildGrid(sizeZ) {
-  //   let preview = "";
-  //   this.pathGrid = new PF.Grid(this.AREA_SIZE.x + 1, sizeZ + 1);
+  // DELETED: playIntro
 
-  //   for (let i = this.zOffset; i < sizeZ; i++) {
-  //     for (let j = 0; j < this.AREA_SIZE.x; j++) {
-  //       const point = new Point(j, 0, i);
-
-  //       // const closestBuild = this.buildManager.getClosestBuild(point);
-  //       // if (!closestBuild) {
-  //       //   this.pathGrid.setWalkableAt(j, i, true);
-  //       //   preview += "0";
-  //       //   continue;
-  //       // }
-
-  //       const closestBuildPoint = new Point(
-  //         Math.floor(point.x / MAGIC_NUMBERS.GRID_SIZE.X) *
-  //           MAGIC_NUMBERS.GRID_SIZE.X,
-  //         MAGIC_NUMBERS.POINTS_GEN.FIXED_Y,
-  //         Math.floor(point.z / MAGIC_NUMBERS.GRID_SIZE.Z) *
-  //           MAGIC_NUMBERS.GRID_SIZE.Z,
-  //       );
-  //       const distanceX = Math.abs(closestBuildPoint.x - point.x);
-  //       const distanceZ = Math.abs(closestBuildPoint.z - point.z);
-
-  //       if (
-  //         distanceX <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.X &&
-  //         distanceZ <= MAGIC_NUMBERS.BUILD_PATH_DISTANCE.Y
-  //       ) {
-  //         this.pathGrid.setWalkableAt(j, i, false);
-  //         preview += "1";
-  //       } else {
-  //         this.pathGrid.setWalkableAt(j, i, true);
-  //         preview += "0";
-  //       }
-  //     }
-  //     preview += "\n";
-  //   }
-
-  //   console.log(preview);
-
-  //   this.previewGrid = preview;
-
-  //   // window.drawPreview = (x, y, x2, y2) => {
-  //   //   const lines = this.previewGrid.split("\n");
-  //   //   let preview = "";
-  //   //   for (let i = 0; i < lines.length; i++) {
-  //   //     let line = "";
-  //   //     for (let j = 0; j < lines[i].length; j++) {
-  //   //       if (j === x && i === y) {
-  //   //         line += " ";
-  //   //       } else {
-  //   //         line += lines[i][j];
-  //   //       }
-  //   //     }
-  //   //     preview += line + "\n";
-  //   //   }
-  //   //   console.log(preview);
-  //   // };
-
-  //   this.pathFinder = new PF.AStarFinder({
-  //     allowsDiagonal: true,
-  //   });
-  // }
-
-  playIntro() {
-    const material = new THREE.MeshStandardMaterial({
-      color: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.COLOR,
-      emissive: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.COLOR,
-      emissiveIntensity: MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.LIGHT_INTENSITY,
-    });
-    const particleSystem = new ParticleSystem(
-      this.scene,
-      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.NUMBER,
-      material,
-      new THREE.SphereGeometry(MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.SIZE, 8, 8),
-      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM,
-    );
-    const pos = this.camera.position
-      .clone()
-      .sub(
-        new THREE.Vector3(
-          MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_SIZE.X / 2,
-          -MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_SIZE.Y / 2,
-          MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.OFFSET_Z,
-        ),
-      );
-    particleSystem.ensureCapacity(
-      pos,
-      MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.DURATION,
-    );
-    this.particleSystems.push(particleSystem);
-    setTimeout(() => {
-      this.particleSystems.splice(
-        this.particleSystems.indexOf(particleSystem),
-        1,
-      );
-    }, MAGIC_NUMBERS.INTRO.PARTICLE_SYSTEM.DURATION * 1000);
-  }
-
+  /**
+   * Finish the initialization after the buildings 3d model are loaded
+   */
   async loadedCallback() {
-    this.buildPositions = this.getPoints();
+    // Generates the path points
+    this.cameraPathPoints = this.getPoints();
 
+    // Set the *real* floor size
     this.floor.geometry.scale(
       MAGIC_NUMBERS.FLOOR_SIZE.X,
       1,
-      this.buildPositions[this.buildPositions.length - 2].z +
+      this.cameraPathPoints[this.cameraPathPoints.length - 2].z +
         MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END,
     );
     this.floor.position.z =
-      this.buildPositions[this.buildPositions.length - 2].z / 2 -
+      this.cameraPathPoints[this.cameraPathPoints.length - 2].z / 2 -
       MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z +
       MAGIC_NUMBERS.FLOOR_SIZE.OFFSET_Z_END / 2;
 
-    // this.buildGrid(neededPoints * MAGIC_NUMBERS.GRID_SIZE.Z);
+    // Initialize the path handler class
+    this.pathGen = new PathGen(this.cameraPathPoints, this);
 
-    this.pathGen = new PathGen(
-      this.buildPositions,
-      this.pathFinder,
-      this.pathGrid,
-      this,
-    );
+    // Initialize the shooting star's particle system
     const material = new THREE.MeshStandardMaterial({
       color: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
       emissive: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
@@ -409,20 +349,34 @@ export class LyricsApp {
       MAGIC_NUMBERS.SHOOTING_STAR.PARTICLES,
     );
     this.particleSystems.push(particleSystem);
+
+    // Start the main loop
     requestAnimationFrame((d) => this.loopWrapper(d, 0));
   }
 
-  loopWrapper(delta, last) {
-    this.currentTime += delta - last;
+  /**
+   * Handles the loop and adds some security (ex. exception catching)
+   * @param {number} time time since start
+   * @param {number} last time since start (last time)
+   * @returns Nothing
+   */
+  loopWrapper(time, last) {
+    this.currentTime += time - last;
     try {
       this.loop(this.currentTime);
     } catch {
       location.reload(); // Reload the page in case of unexpected error, so it's cleaner and doesn't crash with infinite loop or something (since it's probably already a fatal error)
       return;
     }
-    requestAnimationFrame((d) => this.loopWrapper(d, delta));
+    requestAnimationFrame((d) => this.loopWrapper(d, time));
   }
 
+  /**
+   * Basic raycast, used to remove the builds that the camera otherwise go through
+   * @param {Point} point the point
+   * @param {number} distance until which distance
+   * @returns all intersected objects
+   */
   raycastForward(point, distance) {
     const raycaster = new THREE.Raycaster(
       new THREE.Vector3(point.x, point.y, point.z),
@@ -430,9 +384,8 @@ export class LyricsApp {
       0,
       distance,
     );
-    // const objects = this.buildManager.builds
-    //   .filter((build) => build.mesh)
-    //   .map((build) => build.mesh);
+
+    // Select only the builds
     const name = "Build";
     const objects = this.scene.children
       .filter((child) => name === child.name && child.children[0])
@@ -441,25 +394,15 @@ export class LyricsApp {
     return intersects.map((intersect) => intersect.object);
   }
 
-  getClosest(point, objects) {
-    let closestObject = null;
-    let closestDistance = Infinity;
+  // DELETED: getClosest
 
-    for (const object of objects) {
-      const distance = Math.sqrt(
-        (object.x - point.x) ** 2 +
-          (object.y - point.y) ** 2 +
-          (object.z - point.z) ** 2,
-      );
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestObject = object;
-      }
-    }
-
-    return closestObject;
-  }
-
+  /**
+   * Converts text to image
+   * Works by creating a fake canvas, putting the text inside and returning the image as DataURL
+   * I used this since three.js doesn't have a japanese characters
+   * @param {string} character one character
+   * @returns DataURL of the image
+   */
   generateImageFrontCharacter(character) {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -473,36 +416,38 @@ export class LyricsApp {
     return canvas.toDataURL();
   }
 
+  /**
+   * Remove old buildings and creates new one
+   * Used this so not all buildings are created everytime, but only the ones that we can see.
+   * Else we would have 2 FPS
+   * @param {number} nextRefillZ
+   */
   refill(nextRefillZ) {
     const lastRefillZ =
       nextRefillZ -
       MAGIC_NUMBERS.REFILL_INTERVAL -
       MAGIC_NUMBERS.REFILL_INTERVAL_OFFSET;
+    // Add new ones
     this.buildManager.showVirtualBuilds(this.scene, nextRefillZ, lastRefillZ);
+    // Removes old ones
     this.buildManager.removeBuildsBeforeZ(this.scene, lastRefillZ);
   }
 
-  // refill() {
-  //   this.zBuilds += MAGIC_NUMBERS.BUILD_BATCH_NUMBER;
-  //   // console.log(this.zBuilds);
-
-  //   // Refill builds and regenerate path
-  //   // this.zOffset += MAGIC_NUMBERS.AREA_SIZE.z + MAGIC_NUMBERS.PATH_CONNECT.Z_LENGTH; // Little place for the transition
-  //   // this.buildManager.clearBuilds(this.scene);
-  //   // this.buildManager.fillBuilds(this.AREA_SIZE, this.scene, this.zOffset);
-  //   // this.buildGrid();
-  //   // const buildPositions = this.getPoints();
-
-  //   // this.pathGen.updatePath(buildPositions, this.pathFinder, this.pathGrid);
-  // }
-
-  // , point, targetY
+  /**
+   * Generates a lyric's object
+   * @param {string} lyrics the character(s)
+   * @returns {
+     textMesh, // The mesh itself
+     scaleY: 0, // The Y scale
+   };
+   */
   async showLyrics(lyrics) {
+    // Creates the lyric on the progress bar
     if (this.progress) {
       this.progress.spawnLyric(lyrics);
     }
-    // Text geometry
 
+    // Calculate the lyric's init position
     const point = new THREE.Vector3(0, 0, -1).unproject(this.camera);
 
     const cameraDirection = new THREE.Vector3();
@@ -512,12 +457,10 @@ export class LyricsApp {
       cameraDirection.clone().multiplyScalar(MAGIC_NUMBERS.LYRICS.DISTANCE),
     );
 
-    // const cameraPosition = this.camera.position;
-
-    // point.multiplyScalar(MAGIC_NUMBERS.LYRICS.DISTANCE).add(cameraPosition);
-
+    // Generates the text image
     const lyricImage = this.generateImageFrontCharacter(lyrics);
 
+    // Creates the text's material
     const textMaterial = new THREE.MeshStandardMaterial({
       color: MAGIC_NUMBERS.LYRICS_COLOR,
       side: THREE.DoubleSide,
@@ -525,20 +468,13 @@ export class LyricsApp {
       emissiveIntensity: MAGIC_NUMBERS.LYRICS_EMISSIVE_INTENSITY,
     });
 
-    // const bgMaterial = new THREE.MeshStandardMaterial({
-    //   color: MAGIC_NUMBERS.LYRICS_FRAME.COLOR,
-    //   side: THREE.DoubleSide,
-    //   emissive: MAGIC_NUMBERS.LYRICS_FRAME.COLOR,
-    //   emissiveIntensity: MAGIC_NUMBERS.LYRICS_FRAME.EMISSIVE_INTENSITY,
-    // });
-    // bgMaterial.transparent = true;
-
     const textTexture = await new Promise((resolve) => {
       this.loaders.texture.load(lyricImage, (texture) => {
         resolve(texture);
       });
     });
 
+    // Make transparent
     textMaterial.map = textTexture;
     textMaterial.transparent = true;
 
@@ -546,72 +482,42 @@ export class LyricsApp {
     textMaterial.depthTest = false;
     textMaterial.depthWrite = false;
 
+    // Calculate the scale
     const scale = [
       MAGIC_NUMBERS.LYRICS_SIZE * lyrics.length,
       MAGIC_NUMBERS.LYRICS_SIZE,
     ];
 
+    // Create the actual object
     const textGeometry = new THREE.PlaneGeometry(...scale);
-    // const textGeometryBg = new THREE.PlaneGeometry(...scale);
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
 
-    // const textMeshBg = new THREE.Mesh(textGeometryBg, bgMaterial);
+    // Sets the correct position + rotation
     textMesh.quaternion.copy(this.camera.quaternion);
     textMesh.rotateY(Math.PI);
-    // textMeshBg.position.sub(
-    //   cameraDirection
-    //     .clone()
-    //     .multiplyScalar(MAGIC_NUMBERS.LYRICS_FRAME.FRAME_OFFSET),
-    // );
-    // textMesh.add(textMeshBg);
-
-    // let testCube = new THREE.Mesh(
-    //   new THREE.BoxGeometry(1, 1, 1),
-    //   new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-    // );
-    // console.log(lyrics);
 
     textMesh.position.copy(new THREE.Vector3(point.x, point.y, point.z));
 
+    // By default it's mirrored
     textMesh.scale.setX(-1);
 
-    // testCube.position.copy(textMesh.position);
-    // this.scene.add(testCube);
+    // Sets the scaleY at 0 so the animation can smoothly move it to 1
+    textMesh.scale.y = 0;
 
-    // Little animation for the lyrics :)
-    // const material = new THREE.MeshStandardMaterial({
-    //   color: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COLOR,
-    //   emissive: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COLOR,
-    //   emissiveIntensity: MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.LIGHT_INTENSITY,
-    // });
-    // const particleSystem = new ParticleSystem(
-    //   this.scene,
-    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.COUNT,
-    //   material,
-    //   new THREE.SphereGeometry(MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.SIZE, 8, 8),
-    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM,
-    // );
-    // particleSystem.ensureCapacity(
-    //   textMesh.position,
-    //   MAGIC_NUMBERS.LYRICS_PARTICLE_SYSTEM.DURATION, // Spawn all particles at once, then loop (by doing this, it's more optimized)
-    // );
-
+    // Create an object with the mesh and some additional datas
     const textElement = {
       textMesh,
-      // direction: cameraDirection,
-      gravity: Srand.random() * MAGIC_NUMBERS.LYRICS.GRAVITY,
-      i: 0,
       scaleY: 0,
     };
 
-    textMesh.scale.y = 0;
-
-    // console.log(textMesh);
-
+    // Adds to the scene + end
     this.scene.add(textMesh);
     return textElement;
   }
 
+  /**
+   * Creates most of ThreeJS's elements
+   */
   generateElements() {
     // Floor
     const geometry = new THREE.BoxGeometry(1, 0.1, 1);
@@ -623,19 +529,6 @@ export class LyricsApp {
     this.floor = new THREE.Mesh(geometry, material);
     this.floor.position.y = -0.1;
     this.floor.position.x = this.AREA_SIZE.x / 2;
-
-    // Camera spotlight
-    this.cameraLight = new THREE.SpotLight(
-      0xffffff,
-      MAGIC_NUMBERS.CAMERA_LIGHT.INTENSITY,
-      100,
-      degToRad(MAGIC_NUMBERS.CAMERA_LIGHT.ANGLE),
-      0.5,
-      MAGIC_NUMBERS.CAMERA_LIGHT.DECAY,
-    );
-    this.cameraLight.castShadow = true;
-    this.cameraLight.shadow.mapSize.width = 1024;
-    this.cameraLight.shadow.mapSize.height = 1024;
 
     // Skybox
     const textures = this.loaders.cubeTexture.load([
@@ -653,14 +546,17 @@ export class LyricsApp {
     }
 
     // Place them in the scene
-    this.camera.add(this.cameraLight);
     this.scene.add(this.floor);
     this.scene.background = textures;
   }
 
+  /**
+   * Generates 1 shooting star point
+   * @param {boolean} last if it's the last point
+   * @param {*} i the point nbr
+   */
   generateShootingStar(last = false, i) {
-    // Shooting Star
-
+    // Shooting Star mesh
     const starGeometry = new THREE.SphereGeometry(
       MAGIC_NUMBERS.SHOOTING_STAR.SIZE *
         ((i + MAGIC_NUMBERS.SHOOTING_STAR.MIN_SIZE) /
@@ -674,6 +570,8 @@ export class LyricsApp {
       emissiveIntensity: MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_LIGHT_INTENSITY,
     });
     const shootingStar = new THREE.Mesh(starGeometry, starMaterial);
+
+    // Creates a light if it's the last (front) point
     if (last) {
       const light = new THREE.PointLight(
         MAGIC_NUMBERS.SHOOTING_STAR.MATERIAL_COLOR,
@@ -684,18 +582,24 @@ export class LyricsApp {
       shootingStar.add(light);
     }
 
+    // Add to scene + pool/collection
     this.scene.add(shootingStar);
-
     this.shootingStars.push(shootingStar);
   }
 
-  generatePos() {
-    return (Srand.random() - 0.5) * MAGIC_NUMBERS.INTRO.XY_BOUNDS;
-  }
+  // DELETED: generatePos
 
+  /**
+   * Generates the elements requires for the warp effect
+   */
   generateWarp() {
+    // Distance between the camera and the warp's stars, used for to fake the fast that the warp's stars are moving fast
     this.allStarsDistance = MAGIC_NUMBERS.INTRO.WARP.START_DISTANCE;
+
+    // All warp's stars
     const stars = [];
+
+    // Creates a single material for all of them
     const warpMaterial = new THREE.MeshStandardMaterial({
       color: MAGIC_NUMBERS.INTRO.WARP.COLOR,
       transparent: true,
@@ -704,6 +608,7 @@ export class LyricsApp {
       emissiveIntensity: MAGIC_NUMBERS.INTRO.WARP.EMISSIVE_INTENSITY,
     });
     for (let i = 0; i < MAGIC_NUMBERS.INTRO.WARP.NUMBER; i++) {
+      // Creates the mesh
       const star = new THREE.CylinderGeometry(
         MAGIC_NUMBERS.INTRO.WARP.SIZE,
         MAGIC_NUMBERS.INTRO.WARP.SIZE,
@@ -711,6 +616,8 @@ export class LyricsApp {
         20,
       );
       const warpStar = new THREE.Mesh(star, warpMaterial);
+
+      // Set the star's metadata (base x y and z)
       warpStar.userData.z = randInt(0, MAGIC_NUMBERS.INTRO.WARP.MAX_DISTANCE);
       warpStar.userData.y =
         Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
@@ -718,7 +625,10 @@ export class LyricsApp {
       warpStar.userData.x =
         Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX * 2 -
         MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX;
+      // Set a "long" scale (appears like a line instead of a sphere)
       warpStar.scale.z = MAGIC_NUMBERS.INTRO.WARP.SCALE;
+
+      // Do not create a warp star too close to the camera
       if (
         Math.abs(warpStar.userData.y) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN ||
         Math.abs(warpStar.userData.x) > MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN
@@ -730,10 +640,17 @@ export class LyricsApp {
     this.stars = stars;
   }
 
+  /**
+   * moves the stars to make the warp effects (called in loop)
+   * @param {number} dt DeltaTime
+   * @returns Nothing
+   */
   moveStars(dt) {
     if (!this.stars) return;
+
     for (let i = 0; i < this.stars.length; i++) {
       const warpStar = this.stars[i];
+      // Create + compute the new pos
       const pos = this.camera.position
         .clone()
         .add(
@@ -743,12 +660,16 @@ export class LyricsApp {
             warpStar.userData.z,
           ),
         );
+
+      // If it's not too close to the city
       if (pos.z < MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+        // Set the new pos
         warpStar.position.set(pos.x, pos.y, pos.z - this.allStarsDistance);
         if (this.allStarsDistance < 0) {
           this.allStarsDistance += dt;
         }
         warpStar.userData.z += -MAGIC_NUMBERS.INTRO.WARP.OFFSET_ADD * dt;
+        // If it's behind the camera, reset the position, to make an infinite loop
         if (pos.z < this.camera.position.z) {
           warpStar.userData.z = randInt(
             0,
@@ -756,48 +677,37 @@ export class LyricsApp {
           );
         }
       } else {
-        this.scene.remove(warpStar);
+        // Remove ONLY if the deltaTime is not "too much", else there's a bug where the warp stars disappear when you change your browser's tab
+        if (dt < MAGIC_NUMBERS.INTRO.WARP.TIME_REMOVE_BG) {
+          this.scene.remove(warpStar);
+        }
       }
     }
   }
-  // for (let i = 0; i < MAGIC_NUMBERS.INTRO.WARP.NUMBER; i++) {
-  //   const warpStarGeometry = new THREE.CylinderGeometry(
-  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
-  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
-  //     MAGIC_NUMBERS.INTRO.WARP.SIZE,
-  //     20,
-  //   );
 
-  //   const warpStar = new THREE.Mesh(warpStarGeometry, warpMaterial);
-  //   const pos = this.camera.position.clone().add(new THREE.Vector3(0, 0, 0));
-  //   warpStar.position.set(pos.x, pos.y, pos.z);
-  //   warpStar.userData.init = true;
-  //   warpStar.userData.distance =
-  //     Srand.random() * MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MAX +
-  //     MAGIC_NUMBERS.INTRO.WARP.DISTANCE.MIN;
-  //   this.scene.add(warpStar);
-  //   this.warpStars.push(warpStar);
-  // }
-
+  /**
+   * The main loop
+   * @param {number} time the current time
+   * @returns Nothing
+   */
   async loop(time) {
-    let bef = Date.now();
+    // Used for profiling
+    // let bef = Date.now();
+    // Calculate the FPS
     if (this.debug) {
       this.stats.begin();
     }
-    // IMPORTANT: The first frame delta is from the time the page started loading, so we need to ignore it to avoid huge jumps in the path
     // Metric in milliseconds
+    // Calculate the deltaTime from the total time
     let newTime = time - this.lastTime;
     // Trick to modify the playback time
     if (this.changeNeeded) {
       newTime += this.changeNeeded;
     }
     this.lastTime = time;
+
+    // IMPORTANT: The first frame delta is from the time the page started loading, so we need to ignore it to avoid huge jumps in the path
     if (this.isFirstFrame) {
-      // for (const lyricAndTime of LYRICS_TEMP) {
-      //   setTimeout(() => {
-      //     console.log("FIX:", lyricAndTime[1]);
-      //   }, lyricAndTime[0]);
-      // }
       this.isFirstFrame = false;
       this.generateWarp();
       this.composer.render();
@@ -806,11 +716,13 @@ export class LyricsApp {
 
     if (this.stop) return; // "kill" switch
 
+    // If it's the end animation
     if (this.end) {
       if (newTime === 0) {
         newTime = 1;
       }
 
+      // Lerp the camera rotation too look to +Z
       const lookAtMatrix = new THREE.Matrix4();
       lookAtMatrix.lookAt(
         this.camera.position,
@@ -829,53 +741,74 @@ export class LyricsApp {
       this.camera.quaternion.slerp(targetQuat, 0.05);
       this.camera.position.z +=
         (newTime / 1000) * MAGIC_NUMBERS.INTRO.OUTRO_END.Z;
+
+      // When the end's animation is over, restart
       if (
         this.camera.position.z >
         MAGIC_NUMBERS.INTRO.OUTRO_END.Z + this.startZ
       ) {
         this.restart();
       }
-      // Render
-      if (this.stats) {
+
+      // Debug
+      if (this.debug && this.stats) {
         this.stats.end();
       }
+      // Render
       this.composer.render();
       return;
     }
+
+    // Update the build's interactions
     this.buildInteractionManager.update(newTime / 1000);
+
+    // Gets and update the new path's Vector3
     const [newPos, objective, rail] = this.pathGen.update(
       newTime / 1000,
       this.changeNeeded !== null,
       !this.start,
     );
 
+    // If it's not in the song selector
     if (this.start) {
+      // Light-up builds
       for (const build of this.buildManager.builds) {
         this.lightBuild(build, newPos, newTime);
       }
+
+      // If it's in the intro
       if (this.isIntro) {
+        // If the intro should end
         if (newPos.z > MAGIC_NUMBERS.INTRO.WARP.STOP_AT) {
+          // Initialize the progress
           this.initProgress();
+          // Now the resume can play the audio
           this.canPlay = true;
+          // Play the audio
           this.audio.play();
           this.pathGen.currentTime = 0; // Reset the timing for the lyrics
+          // "Unlock" the lyrics (used so lyrics don't spawn during the intro)
           this.pathGen.unlockLyrics();
+          // It's no longer the intro
           this.isIntro = false;
         }
       } else {
+        // Re-enable all interactions
         this.progress.locked = false;
+        // Set the current song's progress
         this.progress.setProgress(
           (this.audio.currentTime / this.audio.duration) * 100,
         );
       }
     }
 
-    // Warp effect
-
+    // Set the camera's pos to the new calculated Vector3 pos
     this.camera.position.set(newPos.x, newPos.y, newPos.z);
 
     if (objective) {
+      // The camera will look to a point in from of it
       this.camera.lookAt(objective.x, objective.y, objective.z);
+      // Update the shooting star's pos
       for (let i = 0; i < rail.length; i++) {
         const point = rail[i];
         const star = this.shootingStars[i];
@@ -889,13 +822,7 @@ export class LyricsApp {
       }
     }
 
-    const cameraDirection = new THREE.Vector3();
-    this.camera.getWorldDirection(cameraDirection);
-    this.cameraLight.target.position
-      .copy(this.camera.position)
-      .add(cameraDirection);
-    this.cameraLight.target.updateMatrixWorld();
-
+    // Update particle systems
     for (const particleSystem of this.particleSystems) {
       particleSystem.ensureCapacity(
         this.shootingStars[0].position.clone(),
@@ -905,15 +832,17 @@ export class LyricsApp {
       particleSystem.loop(newTime / 1000);
     }
 
-    // textElement.textMeshBg.position.add(newDirection);
+    // Update warp's effect
     if (this.isIntro) {
       this.moveStars(newTime / 1000);
     }
 
+    // Reset the progress change (see initProgress)
     if (this.changeNeeded) {
       this.changeNeeded = null;
     }
 
+    // Reset the pos to make the animation infinite
     if (
       !this.start &&
       newPos.z > MAGIC_NUMBERS.INTRO.INTRO_CUSTOM_PATH[0].Z / 4
@@ -922,11 +851,13 @@ export class LyricsApp {
       this.pathGen.currentPoint = 0;
     }
 
+    // If it's the end of the audio, start the end animation
     if (this.audio.currentTime >= this.audio.duration) {
       this.end = true;
       this.startZ = newPos.z;
     }
 
+    // Some debug leftover
     // if (this.debug) {
     //   console.log(this.scene.children.filter((e) => e.name === "Build").length);
     // }
@@ -934,6 +865,7 @@ export class LyricsApp {
     // if (Date.now() - bef >= 10) {
     //   console.log(Date.now() - bef);
     // }
+
     // Render
     this.composer.render();
     if (this.debug) {
@@ -941,41 +873,50 @@ export class LyricsApp {
     }
   }
 
-  lightBuild(build, newPos, newTime) {
+  /**
+   * Handle the build lightning
+   * @param {Build} build the current build
+   * @param {THREE.Vector3} camPos current camera's pos
+   * @param {THREE.Vector3} deltaTime deltaTime
+   */
+  lightBuild(build, camPos, deltaTime) {
     if (build.mesh) {
       // Avoid errors when skipping
       if (
+        // If it's lightable
         build.isLight &&
-        build.position.z - newPos.z <
+        // ...and if it close enough
+        build.position.z - camPos.z <
           MAGIC_NUMBERS.BUILD_LIGHT.START_AT /
             Math.pow(
               build.distance,
               1 / MAGIC_NUMBERS.BUILD_LIGHT.DISTANCE_DECAY,
             )
       ) {
-        // console.log(build.mesh);
-        for (const mesh of [
-          build.mesh.children[0].children[1],
-          // build.mesh.children[0].children[0],
-        ]) {
-          // const mesh = build.mesh.children[0].children[0];
-          mesh.material = Build.LIGHT_MATERIAL.clone();
-          mesh.material.emissiveIntensity = 0;
-          build.isLight = false;
-          build.isLighting = true;
-        }
+        // Start the light animation
+        const mesh = build.mesh.children[0].children[1];
+        mesh.material = Build.LIGHT_MATERIAL.clone();
+        mesh.material.emissiveIntensity = 0;
+        build.isLight = false;
+        build.isLighting = true;
       }
+      // If it's in the light animation
       if (build.isLighting) {
-        // const mesh = build.mesh.children[0].children[0];
-        for (const mesh of [build.mesh.children[0].children[1]]) {
-          mesh.material.emissiveIntensity +=
-            (newTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
-          if (mesh.material.emissiveIntensity > 1) {
-            build.isLighting = false;
-            mesh.material.emissiveIntensity = 1;
-          }
+        const mesh = build.mesh.children[0].children[1];
+
+        // Smoothly light up the building
+        mesh.material.emissiveIntensity +=
+          (deltaTime / 1000) * (1 / MAGIC_NUMBERS.BUILD_LIGHT.TIME_TO_FULL);
+
+        // If the it's lighted
+        if (mesh.material.emissiveIntensity > 1) {
+          // Stop the animation
+          build.isLighting = false;
+          mesh.material.emissiveIntensity = 1;
         }
       }
+
+      // If it's far away, light it a little bit (for the overall ambiance)
       if (
         !build.light ||
         build.position.z - this.camera.position.z >
@@ -986,6 +927,8 @@ export class LyricsApp {
           distance / MAGIC_NUMBERS.BUILD_SHADER.DISTANCE_TO_WHITE,
           1,
         );
+
+        // Make it just a little bit light
         build.mesh.children[0].children[1].material.color =
           new THREE.Color().setRGB(colorNbr, colorNbr, colorNbr);
         build.mesh.children[0].children[1].material.emissiveIntensity =
@@ -994,43 +937,61 @@ export class LyricsApp {
     }
   }
 
+  /**
+   * Restart the app, aka reset everything to default
+   */
   restart() {
+    // Remove all lyrics
     for (const lyric of this.pathGen.lyrics) {
       this.scene.remove(lyric.textMesh);
     }
+    // Remove all buildings
     this.buildManager.clearBuilds(this.scene);
+
+    // Hides the controls
     document.getElementById("controls").style.display = "none";
+
+    // Reset variables
     this.isIntro = true;
     this.end = false;
     this.isFirstFrame = true;
     this.start = false;
+
+    // Reset audio playback time
     this.audio.currentTime = 0;
-    this.pathGen = new PathGen(
-      this.buildPositions,
-      this.pathFinder,
-      this.pathGrid,
-      this,
-    );
+
+    // Recreate a new path manager, so we don't need to reset it manually
+    this.pathGen = new PathGen(this.cameraPathPoints, this);
+
+    // Reset the controls vars
     this.controls.playBtnPlayIcon.style.transform = "scale(1)";
     this.controls.playBtnPauseIcon.style.transform = "scale(0)";
     this.controls.isPlaying = false;
     this.canPlay = false;
+
+    // Reset the progress's vars
     this.progress.setProgress(0);
     this.progress.locked = true;
+
+    // Reset the song selector, by creating a new one
     this.songSelector.isRemoved = true;
     this.songSelector = new SongSelector(() => this.resume());
   }
 
+  /**
+   * Initialize the progress bar
+   */
   initProgress() {
     this.progress = new ProgressBar(
       document.getElementById("progress-bar"),
       {
+        // Speed of the lyrics
         speed: MAGIC_NUMBERS.PROGRESS.SPEED,
       },
       (progress) => {
         // Do NOT use the audio as ref, it can desync!
-        // const difference =
-        //   -this.audio.currentTime + this.audio.duration * progress;
+        // Here we use a little "hacky" thing, we set the deltaTime to a the difference needed to go to the progress we want, so we don't have to modify everything manually
+        // It's not very good to do that, but it saves so much time
         const difference =
           -this.pathGen.currentTime + progress * this.audio.duration;
         this.changeNeeded = difference * 1000;
@@ -1040,18 +1001,27 @@ export class LyricsApp {
           this.controls.playBtnPauseIcon.style.transform = "scale(0)";
           this.resume();
         }
+
+        // Also remove all builds, to avoid performance + states issues
         this.buildManager.clearBuilds(this.scene);
       },
     );
   }
+
+  /**
+   * Init the controls
+   */
   initControls() {
     this.controls = new Controls(
       document.getElementById("controls"),
+      // Resume function
       () => this.resume(),
+      // Pause function
       () => {
         this.audio.pause();
         this.stop = true;
       },
+      // Reset/restart function
       () => {
         if (this.canPlay) {
           this.resume();
@@ -1060,11 +1030,17 @@ export class LyricsApp {
       },
     );
   }
+
+  /**
+   * Resume the playback
+   */
   resume() {
+    // If it's not yet started, show the controls and start it
     if (!this.start) {
       document.getElementById("controls").style.display = "flex";
       this.start = true;
     }
+    // Play the audio ONLY when it's started + init is finished
     if (this.canPlay) {
       this.audio.play();
     }

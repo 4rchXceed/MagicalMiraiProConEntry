@@ -5,11 +5,6 @@ export const MAGIC_NUMBERS = {
   BUILDS_X_OFFSET: 2,
   BUILDS_Z_OFFSET: 5,
   CHANCE_TO_REMOVE_BUILD: 0.1, // Chance to remove a build when filling the area
-  CAMERA_LIGHT: {
-    INTENSITY: 0,
-    ANGLE: 10,
-    DECAY: 1,
-  },
   BUILD_PATH_OFFSET: {
     X: 1,
     Z: 3,
@@ -174,6 +169,7 @@ export const MAGIC_NUMBERS = {
       MAX_DISTANCE: 500,
       STOP_AT: -20,
       START_DISTANCE: -400,
+      TIME_REMOVE_BG: 1,
     },
   },
   PROGRESS: {

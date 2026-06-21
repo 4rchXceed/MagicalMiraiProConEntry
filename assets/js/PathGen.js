@@ -43,12 +43,11 @@ export class Point {
 }
 
 export class PathGen {
-  constructor(buildPositions, pathFinder, pathGrid, app) {
+  constructor(cameraPathPoints, app) {
     this.firstCleanupDone = false;
 
-    this.points = buildPositions;
-    this.pathFinder = pathFinder;
-    this.pathGrid = pathGrid;
+    this.points = cameraPathPoints;
+    // DELETED: pathGrid
     this.app = app;
     this.pathPoints = [];
     this.currentPointIndex = 0;
