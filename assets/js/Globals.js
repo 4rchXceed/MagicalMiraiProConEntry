@@ -178,6 +178,7 @@ export const GLOBAL_VARIABLES = {
   PROGRESS: {
     /** The speed of the lyrics in the progress bar */
     SPEED: 25,
+    START_LEFT: 0,
   },
   /** Config for lighted up buildings */
   BUILD_LIGHT: {
@@ -223,9 +224,11 @@ export const GLOBAL_VARIABLES = {
       /** Size of a particle */
       PARTICLE_RADIUS: 0.1,
       /** Each XYZ seconds a automatic firework will spawn */
-      AUTO_INTERVAL: 0.75,
+      AUTO_INTERVAL: 0.5,
       /** ...at min AUTO_Z_OFFSET of the camera */
-      AUTO_Z_OFFSET: 40,
+      AUTO_Z_OFFSET: 15,
+      /** ... and at max AUTO_Z_MAX distance of the camera */
+      AUTO_Z_MAX: 30,
     },
   },
   /** Song selector variables */
@@ -319,7 +322,7 @@ export const GLOBAL_VARIABLES = {
           name: "TAKEOVER",
         },
       },
-    }, // TODO
+    },
     "settings.title": {
       en: "Settings",
       jp: "設定",

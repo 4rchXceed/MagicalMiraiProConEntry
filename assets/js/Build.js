@@ -1,5 +1,5 @@
 import { GLOBAL_VARIABLES } from "./Globals.js";
-import { randInt } from "./utils/Math.js";
+import { randInt } from "./utils/Utils.js";
 import * as THREE from "three";
 
 /**

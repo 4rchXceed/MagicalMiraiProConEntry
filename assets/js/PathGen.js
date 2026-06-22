@@ -150,6 +150,9 @@ export class LyricsPathGen {
 
     /** Buggy section fix */
     this.buggySectionFixes = [...GLOBAL_VARIABLES.TEXTALIVE_FIRST_SONG_FIX.FIX];
+
+    /** Song ended */
+    this.songEnded = false;
   }
 
   /**
@@ -257,7 +260,11 @@ export class LyricsPathGen {
         current = current.next;
       } // Delete all old lyrics
       this.c = current;
-      console.log(this.c, this.currentTime);
+
+      if (!this.c) {
+        this.songEnded = true;
+      }
+
       // It's bad, but it's the best way I found to do it
       setTimeout(() => {
         this.ignoreNextLyrics = false;
@@ -502,11 +509,15 @@ export class LyricsPathGen {
    */
   textAliveTimeUpdate(position, player) {
     if (this.ignoreNextLyrics) return;
-    if (!this.c) {
+    if (!this.firstC) {
       this.firstC = player.video.firstWord;
     }
     // Take the last lyric or from the beginning
     let current = this.c || player.video.firstWord;
+
+    if (this.songEnded) {
+      return;
+    }
 
     // While there's a lyric
     while (current && current.startTime <= position) {

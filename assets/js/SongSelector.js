@@ -98,6 +98,7 @@ export class SongSelector {
     requestAnimationFrame((t) => this.animate(t));
 
     // Little "easter egg"
+    document.getElementById("easteregg").value = "";
     document.getElementById("easteregg").addEventListener("input", (e) => {
       if (e.target.value == 39) {
         alert("Yes! You found the easter egg!!");

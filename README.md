@@ -20,6 +20,10 @@ I made documentation for both usage and the code
 ## Important note
 ### Since my local version contains an API key (for textalive), you just need to name `Env.js.sample` to `Env.js`, and you can (if you want) enter your own API key inside of it. !! This step is required, else the app won't run !!
 
+## Second note
+On mobile (at least iPhone running iOS 26), if there's no user interaction (click, ...) between the textalive initialization and the song playing, no sound will be played.
+To fix this, I forced the user (only on mobile) to click on a button after the textalive's initialization
+
 ## Usage
 
 ### Song selector

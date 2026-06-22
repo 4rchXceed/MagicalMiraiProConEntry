@@ -25,20 +25,34 @@ export class Controls {
     /** Registers the play/pause click event */
     this.playBtn.addEventListener("click", () => {
       // Invert the current state
-      this.isPlaying = !this.isPlaying;
-      if (this.isPlaying) {
-        // Swap the icons
-        this.playBtnPlayIcon.style.transform = "scale(0)";
-        this.playBtnPauseIcon.style.transform = "scale(1)";
-        // Play the callback
-        playClbk();
-      } else {
-        // Swap the icons
-        this.playBtnPlayIcon.style.transform = "scale(1)";
-        this.playBtnPauseIcon.style.transform = "scale(0)";
-        // Play the callback
-        pauseClbk();
+      this.playPauseToggle(playClbk, pauseClbk);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === " ") {
+        this.playPauseToggle(playClbk, pauseClbk);
       }
     });
+  }
+
+  /**
+   * Toggles play/pause
+   * @param {*} playClbk Function that will be called when the play button is clicked
+   * @param {*} pauseClbk Function that will be called when the pause button is clicked
+   */
+  playPauseToggle(playClbk, pauseClbk) {
+    this.isPlaying = !this.isPlaying;
+    if (this.isPlaying) {
+      // Swap the icons
+      this.playBtnPlayIcon.style.transform = "scale(0)";
+      this.playBtnPauseIcon.style.transform = "scale(1)";
+      // Play the callback
+      playClbk();
+    } else {
+      // Swap the icons
+      this.playBtnPlayIcon.style.transform = "scale(1)";
+      this.playBtnPauseIcon.style.transform = "scale(0)";
+      // Play the callback
+      pauseClbk();
+    }
   }
 }

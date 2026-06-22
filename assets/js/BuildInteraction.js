@@ -1,5 +1,5 @@
 import { Camera, Raycaster, Scene, Vector3 } from "three";
-import { lerp, randInt } from "./utils/Math.js";
+import { lerp, randInt } from "./utils/Utils.js";
 import { GLOBAL_VARIABLES } from "./Globals.js";
 import { FireworkManager } from "./Firework.js";
 import { BuildManager } from "./BuildManager.js";
@@ -186,7 +186,10 @@ export class BuildInteraction {
           b.light &&
           b.position.z >
             this.camera.position.z +
-              GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.AUTO_Z_OFFSET,
+              GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.AUTO_Z_OFFSET &&
+          b.position.z <
+            this.camera.position.z +
+              GLOBAL_VARIABLES.BUILD_INTERACTION.FIREWORK.AUTO_Z_MAX,
       );
       // Select a random build
       const build = builds[randInt(0, builds.length)];

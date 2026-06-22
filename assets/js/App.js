@@ -6,8 +6,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { degToRad, lerp, randInt } from "./utils/Math.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { isMobile, randInt } from "./utils/Utils.js";
 import { GLOBAL_VARIABLES } from "./Globals.js";
 import { LyricsPathGen, Point } from "./PathGen.js";
 import { ParticleSystem } from "./ParticleSystem.js";
@@ -136,6 +135,17 @@ export class LyricsApp {
     /** Playback time (ms) */
     this.textAlivePlaybackTime = 0;
 
+    /** Check if mobile device */
+    this.isMobileDevice = isMobile();
+
+    /** iPhones have a weird bug, where you need to click somewhere after textalive's onTimerReady, so you just create a button that the user will click on */
+    this.mobileClickOk = false;
+
+    // DOM Events
+    document.querySelector("#mobile-btn").addEventListener("click", () => {
+      this.mobileClickOk = true;
+    });
+
     // Init textalive
     this.initTextalive();
   }
@@ -155,9 +165,9 @@ export class LyricsApp {
       // By using this, instead of onVideoReady, we are 100% sure that everything is loaded
       onTimerReady: () => {
         if (this.waitingVideoLoad) {
-          // Stop instantly, we don't want to play during the intro
-          if (this.textAlivePlayer.video) {
-            // this.textAlivePlayer.requestPause();
+          if (this.isMobileDevice) {
+            this.mobileClickOk = false;
+            document.querySelector("#mobile-btn").style.display = "block";
           }
           this.resume();
           this.waitingVideoLoad = false;
@@ -923,15 +933,20 @@ export class LyricsApp {
       this.pathGen.currentSmoothPoint = 0;
     }
 
-    // If it's the end of the audio, start the end animation
     if (
       this.textAlivePlayer &&
-      this.textAlivePlayer.data.song &&
-      this.textAlivePlaybackTime >= this.textAlivePlayer.data.song.length
-    ) {
-      this.end = true;
-      this.startZ = newPos.z;
-    }
+      this.textAlivePlayer.data &&
+      this.textAlivePlayer.data.song
+    )
+      if (
+        this.textAlivePlayer &&
+        this.textAlivePlayer.data.song &&
+        this.textAlivePlaybackTime + 1 >= this.textAlivePlayer.data.song.length
+      ) {
+        // If it's the end of the audio, start the end animation
+        this.end = true;
+        this.startZ = newPos.z;
+      }
 
     // Some debug leftover
     // if (this.debug) {
@@ -1133,7 +1148,17 @@ export class LyricsApp {
     // If it's not yet started, show the controls and start it
     if (!this.start) {
       document.getElementById("controls").style.display = "flex";
-      this.start = true;
+      // Mobile fix
+      if (!this.isMobileDevice || this.mobileClickOk) {
+        document.querySelector("#mobile-btn").style.display = "none";
+        this.mobileClickOk = false;
+        // End mobile fix
+
+        this.start = true;
+      } else {
+        // If not, call the resume in 100ms
+        setTimeout(() => this.resume(), 100);
+      }
     }
     // Play the audio ONLY when it's started + init is finished
     if (this.canPlay) {

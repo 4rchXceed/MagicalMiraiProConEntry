@@ -1,3 +1,5 @@
+import { GLOBAL_VARIABLES } from "./Globals.js";
+
 /**
  * The progress bar
  * Handles click -> changes playback time
@@ -94,7 +96,7 @@ export class ProgressBar {
     // Add the lyric to the list
     this.lyrics.push({
       element: lyricElement,
-      left: 20,
+      left: GLOBAL_VARIABLES.PROGRESS.START_LEFT,
     });
   }
 
